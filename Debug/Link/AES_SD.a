@@ -454,19 +454,19 @@
 ; 0000 000F #endasm
 ;
 ;char NombreArchivo[17];
-;char Cadena[15];
-;char Pantalla[15];
+;char Cadena[15],Cadena2[15];
 ;
 ;unsigned long int mseg=0,tiempo;
 ;char opcion;
-;unsigned char i,j,var, porcentaje, round=0;
+;unsigned char i,var, avance;
 ;unsigned char Llave[176];   //Llave original (0 a 15) y extendida el resto
-;unsigned long NumBloques,w;
+;unsigned long NumBloques,j;
 ;unsigned char error;
 ;unsigned char Buffer[16];
+;unsigned char round=0;
 ;
 ;//SBOX (para cifrado)
-;unsigned char sbox[256] =   {
+;flash unsigned char sbox[256] =   {
 ;  //0     1    2      3     4    5     6     7      8    9     A      B    C     D     E     F
 ;  0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5, 0x30, 0x01, 0x67, 0x2b, 0xfe, 0xd7, 0xab, 0x76,
 ;  0xca, 0x82, 0xc9, 0x7d, 0xfa, 0x59, 0x47, 0xf0, 0xad, 0xd4, 0xa2, 0xaf, 0x9c, 0xa4, 0x72, 0xc0,
@@ -484,11 +484,9 @@
 ;  0x70, 0x3e, 0xb5, 0x66, 0x48, 0x03, 0xf6, 0x0e, 0x61, 0x35, 0x57, 0xb9, 0x86, 0xc1, 0x1d, 0x9e,
 ;  0xe1, 0xf8, 0x98, 0x11, 0x69, 0xd9, 0x8e, 0x94, 0x9b, 0x1e, 0x87, 0xe9, 0xce, 0x55, 0x28, 0xdf,
 ;  0x8c, 0xa1, 0x89, 0x0d, 0xbf, 0xe6, 0x42, 0x68, 0x41, 0x99, 0x2d, 0x0f, 0xb0, 0x54, 0xbb, 0x16 };
-
-	.DSEG
 ;
 ;//Reverse Sbox (para descifrado)
-;unsigned char rsbox[256] =
+;flash unsigned char rsbox[256] =
 ;{ 0x52, 0x09, 0x6a, 0xd5, 0x30, 0x36, 0xa5, 0x38, 0xbf, 0x40, 0xa3, 0x9e, 0x81, 0xf3, 0xd7, 0xfb,
 ;  0x7c, 0xe3, 0x39, 0x82, 0x9b, 0x2f, 0xff, 0x87, 0x34, 0x8e, 0x43, 0x44, 0xc4, 0xde, 0xe9, 0xcb,
 ;  0x54, 0x7b, 0x94, 0x32, 0xa6, 0xc2, 0x23, 0x3d, 0xee, 0x4c, 0x95, 0x0b, 0x42, 0xfa, 0xc3, 0x4e,
@@ -507,11 +505,11 @@
 ;0x17, 0x2b, 0x04, 0x7e, 0xba, 0x77, 0xd6, 0x26, 0xe1, 0x69, 0x14, 0x63, 0x55, 0x21, 0x0c, 0x7d };
 ;
 ;//Se utiliza en la expansión de la llave
-;unsigned char rcon[11] = {
+;flash unsigned char rcon[11] = {
 ;0x8d, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36};
 ;
 ;//Multiplicación por {3} (para cifrado)
-;unsigned char M3[256] =
+;flash unsigned char M3[256] =
 ;{ 0x00, 0x03, 0x06, 0x05, 0x0c, 0x0f, 0x0a, 0x09, 0x18, 0x1b, 0x1e, 0x1d, 0x14, 0x17, 0x12, 0x11,
 ;  0x30, 0x33, 0x36, 0x35, 0x3c, 0x3f, 0x3a, 0x39, 0x28, 0x2b, 0x2e, 0x2d, 0x24, 0x27, 0x22, 0x21,
 ;  0x60, 0x63, 0x66, 0x65, 0x6c, 0x6f, 0x6a, 0x69, 0x78, 0x7b, 0x7e, 0x7d, 0x74, 0x77, 0x72, 0x71,
@@ -529,10 +527,8 @@
 ;  0x3b, 0x38, 0x3d, 0x3e, 0x37, 0x34, 0x31, 0x32, 0x23, 0x20, 0x25, 0x26, 0x2f, 0x2c, 0x29, 0x2a,
 ;  0x0b, 0x08, 0x0d, 0x0e, 0x07, 0x04, 0x01, 0x02, 0x13, 0x10, 0x15, 0x16, 0x1f, 0x1c, 0x19, 0x1a};
 ;
-;unsigned char mul3(unsigned char a){
+;  unsigned char mul3(unsigned char a){
 ; 0000 005B unsigned char mul3(unsigned char a){
-
-	.CSEG
 ;PCODE: $00000186 VOL: 0
 ;PCODE: $00000187 VOL: 0
 ; 0000 005C     return M3[a];
@@ -548,7 +544,7 @@
 ;PCODE: $0000018F VOL: 0
 ;
 ;//Multiplicación por {2} (para cifrado)
-;unsigned char M2[256] =
+;flash unsigned char M2[256] =
 ;{ 0x00, 0x02, 0x04, 0x06, 0x08, 0x0a, 0x0c, 0x0e, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1a, 0x1c, 0x1e,
 ;  0x20, 0x22, 0x24, 0x26, 0x28, 0x2a, 0x2c, 0x2e, 0x30, 0x32, 0x34, 0x36, 0x38, 0x3a, 0x3c, 0x3e,
 ;  0x40, 0x42, 0x44, 0x46, 0x48, 0x4a, 0x4c, 0x4e, 0x50, 0x52, 0x54, 0x56, 0x58, 0x5a, 0x5c, 0x5e,
@@ -565,13 +561,9 @@
 ;  0xbb, 0xb9, 0xbf, 0xbd, 0xb3, 0xb1, 0xb7, 0xb5, 0xab, 0xa9, 0xaf, 0xad, 0xa3, 0xa1, 0xa7, 0xa5,
 ;  0xdb, 0xd9, 0xdf, 0xdd, 0xd3, 0xd1, 0xd7, 0xd5, 0xcb, 0xc9, 0xcf, 0xcd, 0xc3, 0xc1, 0xc7, 0xc5,
 ;  0xfb, 0xf9, 0xff, 0xfd, 0xf3, 0xf1, 0xf7, 0xf5, 0xeb, 0xe9, 0xef, 0xed, 0xe3, 0xe1, 0xe7, 0xe5};
-
-	.DSEG
 ;
-;unsigned char mul2(unsigned char a){
+;  unsigned char mul2(unsigned char a){
 ; 0000 0072 unsigned char mul2(unsigned char a){
-
-	.CSEG
 ;PCODE: $00000190 VOL: 0
 ;PCODE: $00000191 VOL: 0
 ; 0000 0073     return M2[a];
@@ -588,7 +580,7 @@
 ;
 ;
 ;//Multiplicación por {9} (para descifrado)
-;unsigned char M9[256] =
+;flash unsigned char M9[256] =
 ;{ 0x00, 0x09, 0x12, 0x1b, 0x24, 0x2d, 0x36, 0x3f, 0x48, 0x41, 0x5a, 0x53, 0x6c, 0x65, 0x7e, 0x77,
 ;  0x90, 0x99, 0x82, 0x8b, 0xb4, 0xbd, 0xa6, 0xaf, 0xd8, 0xd1, 0xca, 0xc3, 0xfc, 0xf5, 0xee, 0xe7,
 ;  0x3b, 0x32, 0x29, 0x20, 0x1f, 0x16, 0x0d, 0x04, 0x73, 0x7a, 0x61, 0x68, 0x57, 0x5e, 0x45, 0x4c,
@@ -605,13 +597,9 @@
 ;  0x0a, 0x03, 0x18, 0x11, 0x2e, 0x27, 0x3c, 0x35, 0x42, 0x4b, 0x50, 0x59, 0x66, 0x6f, 0x74, 0x7d,
 ;  0xa1, 0xa8, 0xb3, 0xba, 0x85, 0x8c, 0x97, 0x9e, 0xe9, 0xe0, 0xfb, 0xf2, 0xcd, 0xc4, 0xdf, 0xd6,
 ;  0x31, 0x38, 0x23, 0x2a, 0x15, 0x1c, 0x07, 0x0e, 0x79, 0x70, 0x6b, 0x62, 0x5d, 0x54, 0x4f, 0x46};
-
-	.DSEG
 ;
 ;unsigned char mul9(unsigned char a){
 ; 0000 008A unsigned char mul9(unsigned char a){
-
-	.CSEG
 ;PCODE: $0000019A VOL: 0
 ;PCODE: $0000019B VOL: 0
 ; 0000 008B     return M9[a];
@@ -628,7 +616,7 @@
 ;
 ;
 ;//Multiplicación por {0B} (para descifrado)
-;unsigned char M11[256] =
+;flash unsigned char M11[256] =
 ;{ 0x00, 0x0b, 0x16, 0x1d, 0x2c, 0x27, 0x3a, 0x31, 0x58, 0x53, 0x4e, 0x45, 0x74, 0x7f, 0x62, 0x69,
 ;  0xb0, 0xbb, 0xa6, 0xad, 0x9c, 0x97, 0x8a, 0x81, 0xe8, 0xe3, 0xfe, 0xf5, 0xc4, 0xcf, 0xd2, 0xd9,
 ;  0x7b, 0x70, 0x6d, 0x66, 0x57, 0x5c, 0x41, 0x4a, 0x23, 0x28, 0x35, 0x3e, 0x0f, 0x04, 0x19, 0x12,
@@ -645,13 +633,9 @@
 ;  0xb1, 0xba, 0xa7, 0xac, 0x9d, 0x96, 0x8b, 0x80, 0xe9, 0xe2, 0xff, 0xf4, 0xc5, 0xce, 0xd3, 0xd8,
 ;  0x7a, 0x71, 0x6c, 0x67, 0x56, 0x5d, 0x40, 0x4b, 0x22, 0x29, 0x34, 0x3f, 0x0e, 0x05, 0x18, 0x13,
 ;  0xca, 0xc1, 0xdc, 0xd7, 0xe6, 0xed, 0xf0, 0xfb, 0x92, 0x99, 0x84, 0x8f, 0xbe, 0xb5, 0xa8, 0xa3};
-
-	.DSEG
 ;
 ;unsigned char mul11(unsigned char a){
 ; 0000 00A2 unsigned char mul11(unsigned char a){
-
-	.CSEG
 ;PCODE: $000001A4 VOL: 0
 ;PCODE: $000001A5 VOL: 0
 ; 0000 00A3     return M11[a];
@@ -667,7 +651,7 @@
 ;PCODE: $000001AD VOL: 0
 ;
 ;//Multiplicación por {0D} (para descifrado)
-;unsigned char M13[256] =
+;flash unsigned char M13[256] =
 ;{ 0x00, 0x0d, 0x1a, 0x17, 0x34, 0x39, 0x2e, 0x23, 0x68, 0x65, 0x72, 0x7f, 0x5c, 0x51, 0x46, 0x4b,
 ;  0xd0, 0xdd, 0xca, 0xc7, 0xe4, 0xe9, 0xfe, 0xf3, 0xb8, 0xb5, 0xa2, 0xaf, 0x8c, 0x81, 0x96, 0x9b,
 ;  0xbb, 0xb6, 0xa1, 0xac, 0x8f, 0x82, 0x95, 0x98, 0xd3, 0xde, 0xc9, 0xc4, 0xe7, 0xea, 0xfd, 0xf0,
@@ -684,13 +668,9 @@
 ;  0x67, 0x6a, 0x7d, 0x70, 0x53, 0x5e, 0x49, 0x44, 0x0f, 0x02, 0x15, 0x18, 0x3b, 0x36, 0x21, 0x2c,
 ;  0x0c, 0x01, 0x16, 0x1b, 0x38, 0x35, 0x22, 0x2f, 0x64, 0x69, 0x7e, 0x73, 0x50, 0x5d, 0x4a, 0x47,
 ;  0xdc, 0xd1, 0xc6, 0xcb, 0xe8, 0xe5, 0xf2, 0xff, 0xb4, 0xb9, 0xae, 0xa3, 0x80, 0x8d, 0x9a, 0x97};
-
-	.DSEG
 ;
 ;unsigned char mul13(unsigned char a){
 ; 0000 00B9 unsigned char mul13(unsigned char a){
-
-	.CSEG
 ;PCODE: $000001AE VOL: 0
 ;PCODE: $000001AF VOL: 0
 ; 0000 00BA     return M13[a];
@@ -707,7 +687,7 @@
 ;
 ;
 ;//Multiplicación por {0E} (para cifrado)
-;unsigned char M14[256] =
+;flash unsigned char M14[256] =
 ;{ 0x00, 0x0e, 0x1c, 0x12, 0x38, 0x36, 0x24, 0x2a, 0x70, 0x7e, 0x6c, 0x62, 0x48, 0x46, 0x54, 0x5a,
 ;  0xe0, 0xee, 0xfc, 0xf2, 0xd8, 0xd6, 0xc4, 0xca, 0x90, 0x9e, 0x8c, 0x82, 0xa8, 0xa6, 0xb4, 0xba,
 ;  0xdb, 0xd5, 0xc7, 0xc9, 0xe3, 0xed, 0xff, 0xf1, 0xab, 0xa5, 0xb7, 0xb9, 0x93, 0x9d, 0x8f, 0x81,
@@ -724,13 +704,9 @@
 ;  0x0c, 0x02, 0x10, 0x1e, 0x34, 0x3a, 0x28, 0x26, 0x7c, 0x72, 0x60, 0x6e, 0x44, 0x4a, 0x58, 0x56,
 ;  0x37, 0x39, 0x2b, 0x25, 0x0f, 0x01, 0x13, 0x1d, 0x47, 0x49, 0x5b, 0x55, 0x7f, 0x71, 0x63, 0x6d,
 ;  0xd7, 0xd9, 0xcb, 0xc5, 0xef, 0xe1, 0xf3, 0xfd, 0xa7, 0xa9, 0xbb, 0xb5, 0x9f, 0x91, 0x83, 0x8d};
-
-	.DSEG
 ;
 ;unsigned char mul14(unsigned char a){
 ; 0000 00D1 unsigned char mul14(unsigned char a){
-
-	.CSEG
 ;PCODE: $000001B8 VOL: 0
 ;PCODE: $000001B9 VOL: 0
 ; 0000 00D2     return M14[a];
@@ -969,31 +945,45 @@
 ;PCODE: $0000026B VOL: 0
 ;PCODE: $0000026C VOL: 0
 ;PCODE: $0000026D VOL: 0
-;void InvAddRoundKey(unsigned char *state, unsigned char *expandedkey, unsigned char k)
-; 0000 0109 {
+;
+;interrupt [TIM1_COMPA] void timer1_compa_isr(void)
+; 0000 010A {
 ;PCODE: $0000026E VOL: 0
 ;PCODE: $0000026F VOL: 0
-; 0000 010A     for (i=0; i<16; i++)
+; 0000 010B disk_timerproc();
 ;PCODE: $00000270 VOL: 0
-;	*state -> Y+3
-;	*expandedkey -> Y+1
-;	k -> Y+0
+; 0000 010C /* MMC/SD/SD HC card access low level timing function */
+; 0000 010D }
 ;PCODE: $00000271 VOL: 0
 ;PCODE: $00000272 VOL: 0
 ;PCODE: $00000273 VOL: 0
+;
+;
+;// Timer2 output compare interrupt service routine
+;interrupt [TIM2_COMPA] void timer2_compa_isr(void)
+; 0000 0112 {
 ;PCODE: $00000274 VOL: 0
 ;PCODE: $00000275 VOL: 0
+; 0000 0113   mseg++;
 ;PCODE: $00000276 VOL: 0
 ;PCODE: $00000277 VOL: 0
 ;PCODE: $00000278 VOL: 0
 ;PCODE: $00000279 VOL: 0
+; 0000 0114 }
 ;PCODE: $0000027A VOL: 0
-; 0000 010B         state[i] = state[i] ^ expandedkey[i+(160 - 16*k)];
 ;PCODE: $0000027B VOL: 0
 ;PCODE: $0000027C VOL: 0
+;
+;//-------------------------- FUNCIONES PARA CIFRAR -------------------------
+;void AddRoundKey(unsigned char *state, unsigned char *expandedkey, unsigned char k)
+; 0000 0118 {
 ;PCODE: $0000027D VOL: 0
 ;PCODE: $0000027E VOL: 0
+; 0000 0119     for (i=0; i<16; i++)
 ;PCODE: $0000027F VOL: 0
+;	*state -> Y+3
+;	*expandedkey -> Y+1
+;	k -> Y+0
 ;PCODE: $00000280 VOL: 0
 ;PCODE: $00000281 VOL: 0
 ;PCODE: $00000282 VOL: 0
@@ -1004,6 +994,7 @@
 ;PCODE: $00000287 VOL: 0
 ;PCODE: $00000288 VOL: 0
 ;PCODE: $00000289 VOL: 0
+; 0000 011A         state[i] = state[i] ^ expandedkey[i+(16*k)];
 ;PCODE: $0000028A VOL: 0
 ;PCODE: $0000028B VOL: 0
 ;PCODE: $0000028C VOL: 0
@@ -1021,35 +1012,37 @@
 ;PCODE: $00000298 VOL: 0
 ;PCODE: $00000299 VOL: 0
 ;PCODE: $0000029A VOL: 0
-; 0000 010C }
 ;PCODE: $0000029B VOL: 0
 ;PCODE: $0000029C VOL: 0
 ;PCODE: $0000029D VOL: 0
-;
-;
-;void AddRoundKey(unsigned char *state, unsigned char *expandedkey, unsigned char k)
-; 0000 0110 {
 ;PCODE: $0000029E VOL: 0
 ;PCODE: $0000029F VOL: 0
-; 0000 0111     for (i=0; i<16; i++){
 ;PCODE: $000002A0 VOL: 0
-;	*state -> Y+3
-;	*expandedkey -> Y+1
-;	k -> Y+0
 ;PCODE: $000002A1 VOL: 0
 ;PCODE: $000002A2 VOL: 0
 ;PCODE: $000002A3 VOL: 0
 ;PCODE: $000002A4 VOL: 0
 ;PCODE: $000002A5 VOL: 0
 ;PCODE: $000002A6 VOL: 0
+; 0000 011B }
 ;PCODE: $000002A7 VOL: 0
 ;PCODE: $000002A8 VOL: 0
 ;PCODE: $000002A9 VOL: 0
+;
+;void MixColumns(unsigned char *state)
+; 0000 011E {
 ;PCODE: $000002AA VOL: 0
-; 0000 0112         state[i] = state[i] ^ expandedkey[i+(16*k)];
 ;PCODE: $000002AB VOL: 0
+; 0000 011F     unsigned char i, a0, a1, a2, a3;
+; 0000 0120     for(i = 0; i < 16; i+=4)
 ;PCODE: $000002AC VOL: 0
 ;PCODE: $000002AD VOL: 0
+;	*state -> Y+5
+;	i -> R16
+;	a0 -> R17
+;	a1 -> R18
+;	a2 -> R19
+;	a3 -> R20
 ;PCODE: $000002AE VOL: 0
 ;PCODE: $000002AF VOL: 0
 ;PCODE: $000002B0 VOL: 0
@@ -1059,44 +1052,36 @@
 ;PCODE: $000002B4 VOL: 0
 ;PCODE: $000002B5 VOL: 0
 ;PCODE: $000002B6 VOL: 0
+; 0000 0121     {
+; 0000 0122         a0 = state[i];
 ;PCODE: $000002B7 VOL: 0
 ;PCODE: $000002B8 VOL: 0
 ;PCODE: $000002B9 VOL: 0
+; 0000 0123         a1 = state[i+1];
 ;PCODE: $000002BA VOL: 0
 ;PCODE: $000002BB VOL: 0
 ;PCODE: $000002BC VOL: 0
 ;PCODE: $000002BD VOL: 0
 ;PCODE: $000002BE VOL: 0
 ;PCODE: $000002BF VOL: 0
+; 0000 0124         a2 = state[i+2];
 ;PCODE: $000002C0 VOL: 0
 ;PCODE: $000002C1 VOL: 0
-; 0000 0113     }
 ;PCODE: $000002C2 VOL: 0
 ;PCODE: $000002C3 VOL: 0
 ;PCODE: $000002C4 VOL: 0
 ;PCODE: $000002C5 VOL: 0
+; 0000 0125         a3 = state[i+3];
 ;PCODE: $000002C6 VOL: 0
 ;PCODE: $000002C7 VOL: 0
-; 0000 0114 }
 ;PCODE: $000002C8 VOL: 0
 ;PCODE: $000002C9 VOL: 0
 ;PCODE: $000002CA VOL: 0
-;
-;
-;void MixColumns(unsigned char *state)
-; 0000 0118 {
 ;PCODE: $000002CB VOL: 0
+; 0000 0126         state[i]   = mul2(a0)^mul3(a1)^a2^a3;
 ;PCODE: $000002CC VOL: 0
-; 0000 0119     unsigned char i, a0, a1, a2, a3;
-; 0000 011A     for(i = 0; i < 16; i+=4){
 ;PCODE: $000002CD VOL: 0
 ;PCODE: $000002CE VOL: 0
-;	*state -> Y+5
-;	i -> R16
-;	a0 -> R17
-;	a1 -> R18
-;	a2 -> R19
-;	a3 -> R20
 ;PCODE: $000002CF VOL: 0
 ;PCODE: $000002D0 VOL: 0
 ;PCODE: $000002D1 VOL: 0
@@ -1106,32 +1091,29 @@
 ;PCODE: $000002D5 VOL: 0
 ;PCODE: $000002D6 VOL: 0
 ;PCODE: $000002D7 VOL: 0
-; 0000 011B         a0 = state[i];
 ;PCODE: $000002D8 VOL: 0
 ;PCODE: $000002D9 VOL: 0
 ;PCODE: $000002DA VOL: 0
-; 0000 011C         a1 = state[i+1];
 ;PCODE: $000002DB VOL: 0
+; 0000 0127         state[i+1] = mul2(a1)^mul3(a2)^a0^a3;
 ;PCODE: $000002DC VOL: 0
 ;PCODE: $000002DD VOL: 0
 ;PCODE: $000002DE VOL: 0
 ;PCODE: $000002DF VOL: 0
 ;PCODE: $000002E0 VOL: 0
-; 0000 011D         a2 = state[i+2];
 ;PCODE: $000002E1 VOL: 0
 ;PCODE: $000002E2 VOL: 0
 ;PCODE: $000002E3 VOL: 0
 ;PCODE: $000002E4 VOL: 0
 ;PCODE: $000002E5 VOL: 0
 ;PCODE: $000002E6 VOL: 0
-; 0000 011E         a3 = state[i+3];
 ;PCODE: $000002E7 VOL: 0
 ;PCODE: $000002E8 VOL: 0
 ;PCODE: $000002E9 VOL: 0
 ;PCODE: $000002EA VOL: 0
 ;PCODE: $000002EB VOL: 0
 ;PCODE: $000002EC VOL: 0
-; 0000 011F         state[i]   = mul2(a0)^mul3(a1)^a2^a3;
+; 0000 0128         state[i+2] = mul2(a2)^mul3(a3)^a0^a1;
 ;PCODE: $000002ED VOL: 0
 ;PCODE: $000002EE VOL: 0
 ;PCODE: $000002EF VOL: 0
@@ -1148,8 +1130,8 @@
 ;PCODE: $000002FA VOL: 0
 ;PCODE: $000002FB VOL: 0
 ;PCODE: $000002FC VOL: 0
-; 0000 0120         state[i+1] = mul2(a1)^mul3(a2)^a0^a3;
 ;PCODE: $000002FD VOL: 0
+; 0000 0129         state[i+3] = mul2(a3)^mul3(a0)^a1^a2;
 ;PCODE: $000002FE VOL: 0
 ;PCODE: $000002FF VOL: 0
 ;PCODE: $00000300 VOL: 0
@@ -1166,25 +1148,32 @@
 ;PCODE: $0000030B VOL: 0
 ;PCODE: $0000030C VOL: 0
 ;PCODE: $0000030D VOL: 0
-; 0000 0121         state[i+2] = mul2(a2)^mul3(a3)^a0^a1;
 ;PCODE: $0000030E VOL: 0
+; 0000 012A     }
 ;PCODE: $0000030F VOL: 0
 ;PCODE: $00000310 VOL: 0
 ;PCODE: $00000311 VOL: 0
 ;PCODE: $00000312 VOL: 0
 ;PCODE: $00000313 VOL: 0
+; 0000 012B }
 ;PCODE: $00000314 VOL: 0
 ;PCODE: $00000315 VOL: 0
 ;PCODE: $00000316 VOL: 0
 ;PCODE: $00000317 VOL: 0
+;
+;void SubBytes(unsigned char *state){
+; 0000 012D void SubBytes(unsigned char *state){
 ;PCODE: $00000318 VOL: 0
 ;PCODE: $00000319 VOL: 0
+; 0000 012E     unsigned char index=0;
+; 0000 012F     for (i=0; i<16; i++) {
 ;PCODE: $0000031A VOL: 0
 ;PCODE: $0000031B VOL: 0
+;	*state -> Y+1
+;	index -> R16
 ;PCODE: $0000031C VOL: 0
 ;PCODE: $0000031D VOL: 0
 ;PCODE: $0000031E VOL: 0
-; 0000 0122         state[i+3] = mul2(a3)^mul3(a0)^a1^a2;
 ;PCODE: $0000031F VOL: 0
 ;PCODE: $00000320 VOL: 0
 ;PCODE: $00000321 VOL: 0
@@ -1194,119 +1183,145 @@
 ;PCODE: $00000325 VOL: 0
 ;PCODE: $00000326 VOL: 0
 ;PCODE: $00000327 VOL: 0
+; 0000 0130         index=state[i];
 ;PCODE: $00000328 VOL: 0
 ;PCODE: $00000329 VOL: 0
 ;PCODE: $0000032A VOL: 0
 ;PCODE: $0000032B VOL: 0
 ;PCODE: $0000032C VOL: 0
+; 0000 0131         state[i] = sbox[index];
 ;PCODE: $0000032D VOL: 0
 ;PCODE: $0000032E VOL: 0
 ;PCODE: $0000032F VOL: 0
-; 0000 0123     }
 ;PCODE: $00000330 VOL: 0
 ;PCODE: $00000331 VOL: 0
 ;PCODE: $00000332 VOL: 0
 ;PCODE: $00000333 VOL: 0
 ;PCODE: $00000334 VOL: 0
-; 0000 0124 }
 ;PCODE: $00000335 VOL: 0
+; 0000 0132     }
 ;PCODE: $00000336 VOL: 0
 ;PCODE: $00000337 VOL: 0
 ;PCODE: $00000338 VOL: 0
-;
-;void InverseMixColumns(unsigned char *state)
-; 0000 0127 {
 ;PCODE: $00000339 VOL: 0
 ;PCODE: $0000033A VOL: 0
-; 0000 0128     unsigned char i, a0, a1, a2, a3;
-; 0000 0129     for(i = 0; i < 16; i+=4)
 ;PCODE: $0000033B VOL: 0
+; 0000 0133 }
 ;PCODE: $0000033C VOL: 0
-;	*state -> Y+5
-;	i -> R16
-;	a0 -> R17
-;	a1 -> R18
-;	a2 -> R19
-;	a3 -> R20
 ;PCODE: $0000033D VOL: 0
 ;PCODE: $0000033E VOL: 0
 ;PCODE: $0000033F VOL: 0
 ;PCODE: $00000340 VOL: 0
+;
+;void ShiftRows(unsigned char *state)
+; 0000 0136 {
 ;PCODE: $00000341 VOL: 0
 ;PCODE: $00000342 VOL: 0
+; 0000 0137     //Segunda fila
+; 0000 0138     //buffers
+; 0000 0139     unsigned char aux;
+; 0000 013A     aux=state[1];
 ;PCODE: $00000343 VOL: 0
 ;PCODE: $00000344 VOL: 0
+;	*state -> Y+1
+;	aux -> R16
 ;PCODE: $00000345 VOL: 0
-; 0000 012A     {
-; 0000 012B         a0 = state[i];
 ;PCODE: $00000346 VOL: 0
 ;PCODE: $00000347 VOL: 0
+; 0000 013B     state[1]=state[5];
 ;PCODE: $00000348 VOL: 0
-; 0000 012C         a1 = state[i+1];
 ;PCODE: $00000349 VOL: 0
 ;PCODE: $0000034A VOL: 0
 ;PCODE: $0000034B VOL: 0
+; 0000 013C     state[5]=state[9];
 ;PCODE: $0000034C VOL: 0
 ;PCODE: $0000034D VOL: 0
 ;PCODE: $0000034E VOL: 0
-; 0000 012D         a2 = state[i+2];
 ;PCODE: $0000034F VOL: 0
+; 0000 013D     state[9]=state[13];
 ;PCODE: $00000350 VOL: 0
 ;PCODE: $00000351 VOL: 0
 ;PCODE: $00000352 VOL: 0
 ;PCODE: $00000353 VOL: 0
+; 0000 013E     state[13]=aux;
 ;PCODE: $00000354 VOL: 0
-; 0000 012E         a3 = state[i+3];
 ;PCODE: $00000355 VOL: 0
 ;PCODE: $00000356 VOL: 0
+; 0000 013F 
+; 0000 0140     //Tercera fila
+; 0000 0141     //buffers
+; 0000 0142     //SWAP state[8]<->state[10]
+; 0000 0143     aux=state[2];
 ;PCODE: $00000357 VOL: 0
 ;PCODE: $00000358 VOL: 0
 ;PCODE: $00000359 VOL: 0
+; 0000 0144     state[2]=state[10];
 ;PCODE: $0000035A VOL: 0
-; 0000 012F         state[i]   = mul14(a0) ^ mul11(a1) ^ mul13(a2) ^ mul9(a3);
 ;PCODE: $0000035B VOL: 0
 ;PCODE: $0000035C VOL: 0
 ;PCODE: $0000035D VOL: 0
+; 0000 0145     state[10]=aux;
 ;PCODE: $0000035E VOL: 0
 ;PCODE: $0000035F VOL: 0
 ;PCODE: $00000360 VOL: 0
+; 0000 0146     //SWAP state[9]<->state[11]
+; 0000 0147     aux=state[6];
 ;PCODE: $00000361 VOL: 0
 ;PCODE: $00000362 VOL: 0
 ;PCODE: $00000363 VOL: 0
+; 0000 0148     state[6]=state[14];
 ;PCODE: $00000364 VOL: 0
 ;PCODE: $00000365 VOL: 0
 ;PCODE: $00000366 VOL: 0
 ;PCODE: $00000367 VOL: 0
+; 0000 0149     state[14]=aux;
 ;PCODE: $00000368 VOL: 0
 ;PCODE: $00000369 VOL: 0
 ;PCODE: $0000036A VOL: 0
+; 0000 014A 
+; 0000 014B     //Cuarta fila
+; 0000 014C     //buffers
+; 0000 014D     aux=state[15];
 ;PCODE: $0000036B VOL: 0
 ;PCODE: $0000036C VOL: 0
 ;PCODE: $0000036D VOL: 0
+; 0000 014E     state[15]=state[11];
 ;PCODE: $0000036E VOL: 0
 ;PCODE: $0000036F VOL: 0
 ;PCODE: $00000370 VOL: 0
 ;PCODE: $00000371 VOL: 0
+; 0000 014F     state[11]=state[7];
 ;PCODE: $00000372 VOL: 0
-; 0000 0130         state[i+1] = mul9(a0) ^ mul14(a1) ^ mul11(a2) ^ mul13(a3);
 ;PCODE: $00000373 VOL: 0
 ;PCODE: $00000374 VOL: 0
 ;PCODE: $00000375 VOL: 0
+; 0000 0150     state[7]=state[3];
 ;PCODE: $00000376 VOL: 0
 ;PCODE: $00000377 VOL: 0
 ;PCODE: $00000378 VOL: 0
 ;PCODE: $00000379 VOL: 0
+; 0000 0151     state[3]=aux;
 ;PCODE: $0000037A VOL: 0
 ;PCODE: $0000037B VOL: 0
 ;PCODE: $0000037C VOL: 0
+; 0000 0152 
+; 0000 0153 }
 ;PCODE: $0000037D VOL: 0
 ;PCODE: $0000037E VOL: 0
 ;PCODE: $0000037F VOL: 0
 ;PCODE: $00000380 VOL: 0
 ;PCODE: $00000381 VOL: 0
+;//-------------------------- FUNCIONES PARA DESCIFRAR ----------------------
+;
+;void InvAddRoundKey(unsigned char *state, unsigned char *expandedkey, unsigned char k)
+; 0000 0157 {
 ;PCODE: $00000382 VOL: 0
 ;PCODE: $00000383 VOL: 0
+; 0000 0158     for (i=0; i<16; i++)
 ;PCODE: $00000384 VOL: 0
+;	*state -> Y+3
+;	*expandedkey -> Y+1
+;	k -> Y+0
 ;PCODE: $00000385 VOL: 0
 ;PCODE: $00000386 VOL: 0
 ;PCODE: $00000387 VOL: 0
@@ -1314,10 +1329,10 @@
 ;PCODE: $00000389 VOL: 0
 ;PCODE: $0000038A VOL: 0
 ;PCODE: $0000038B VOL: 0
-; 0000 0131         state[i+2] = mul13(a0) ^ mul9(a1) ^ mul14(a2) ^ mul11(a3);
 ;PCODE: $0000038C VOL: 0
 ;PCODE: $0000038D VOL: 0
 ;PCODE: $0000038E VOL: 0
+; 0000 0159         state[i] = state[i] ^ expandedkey[i+(160 - 16*k)];
 ;PCODE: $0000038F VOL: 0
 ;PCODE: $00000390 VOL: 0
 ;PCODE: $00000391 VOL: 0
@@ -1340,7 +1355,6 @@
 ;PCODE: $000003A2 VOL: 0
 ;PCODE: $000003A3 VOL: 0
 ;PCODE: $000003A4 VOL: 0
-; 0000 0132         state[i+3] = mul11(a0) ^ mul13(a1) ^ mul9(a2) ^ mul14(a3);
 ;PCODE: $000003A5 VOL: 0
 ;PCODE: $000003A6 VOL: 0
 ;PCODE: $000003A7 VOL: 0
@@ -1351,13 +1365,25 @@
 ;PCODE: $000003AC VOL: 0
 ;PCODE: $000003AD VOL: 0
 ;PCODE: $000003AE VOL: 0
+; 0000 015A }
 ;PCODE: $000003AF VOL: 0
 ;PCODE: $000003B0 VOL: 0
 ;PCODE: $000003B1 VOL: 0
+;
+;void InverseMixColumns(unsigned char *state)
+; 0000 015D {
 ;PCODE: $000003B2 VOL: 0
 ;PCODE: $000003B3 VOL: 0
+; 0000 015E     unsigned char i, a0, a1, a2, a3;
+; 0000 015F     for(i = 0; i < 16; i+=4)
 ;PCODE: $000003B4 VOL: 0
 ;PCODE: $000003B5 VOL: 0
+;	*state -> Y+5
+;	i -> R16
+;	a0 -> R17
+;	a1 -> R18
+;	a2 -> R19
+;	a3 -> R20
 ;PCODE: $000003B6 VOL: 0
 ;PCODE: $000003B7 VOL: 0
 ;PCODE: $000003B8 VOL: 0
@@ -1366,47 +1392,42 @@
 ;PCODE: $000003BB VOL: 0
 ;PCODE: $000003BC VOL: 0
 ;PCODE: $000003BD VOL: 0
-; 0000 0133     }
 ;PCODE: $000003BE VOL: 0
+; 0000 0160     {
+; 0000 0161         a0 = state[i];
 ;PCODE: $000003BF VOL: 0
 ;PCODE: $000003C0 VOL: 0
 ;PCODE: $000003C1 VOL: 0
+; 0000 0162         a1 = state[i+1];
 ;PCODE: $000003C2 VOL: 0
-; 0000 0134 }
 ;PCODE: $000003C3 VOL: 0
 ;PCODE: $000003C4 VOL: 0
 ;PCODE: $000003C5 VOL: 0
 ;PCODE: $000003C6 VOL: 0
-;
-;void SubBytes(unsigned char *state){
-; 0000 0136 void SubBytes(unsigned char *state){
 ;PCODE: $000003C7 VOL: 0
+; 0000 0163         a2 = state[i+2];
 ;PCODE: $000003C8 VOL: 0
-; 0000 0137     unsigned char index=0;
-; 0000 0138     for (i=0; i<16; i++) {
 ;PCODE: $000003C9 VOL: 0
 ;PCODE: $000003CA VOL: 0
-;	*state -> Y+1
-;	index -> R16
 ;PCODE: $000003CB VOL: 0
 ;PCODE: $000003CC VOL: 0
 ;PCODE: $000003CD VOL: 0
+; 0000 0164         a3 = state[i+3];
 ;PCODE: $000003CE VOL: 0
 ;PCODE: $000003CF VOL: 0
 ;PCODE: $000003D0 VOL: 0
 ;PCODE: $000003D1 VOL: 0
 ;PCODE: $000003D2 VOL: 0
 ;PCODE: $000003D3 VOL: 0
+; 0000 0165         state[i]   = mul14(a0) ^ mul11(a1) ^ mul13(a2) ^ mul9(a3);
 ;PCODE: $000003D4 VOL: 0
 ;PCODE: $000003D5 VOL: 0
 ;PCODE: $000003D6 VOL: 0
-; 0000 0139         index=state[i];
 ;PCODE: $000003D7 VOL: 0
 ;PCODE: $000003D8 VOL: 0
 ;PCODE: $000003D9 VOL: 0
 ;PCODE: $000003DA VOL: 0
 ;PCODE: $000003DB VOL: 0
-; 0000 013A         state[i] = sbox[index];
 ;PCODE: $000003DC VOL: 0
 ;PCODE: $000003DD VOL: 0
 ;PCODE: $000003DE VOL: 0
@@ -1416,27 +1437,21 @@
 ;PCODE: $000003E2 VOL: 0
 ;PCODE: $000003E3 VOL: 0
 ;PCODE: $000003E4 VOL: 0
-; 0000 013B     }
 ;PCODE: $000003E5 VOL: 0
 ;PCODE: $000003E6 VOL: 0
 ;PCODE: $000003E7 VOL: 0
 ;PCODE: $000003E8 VOL: 0
 ;PCODE: $000003E9 VOL: 0
 ;PCODE: $000003EA VOL: 0
-; 0000 013C }
 ;PCODE: $000003EB VOL: 0
+; 0000 0166         state[i+1] = mul9(a0) ^ mul14(a1) ^ mul11(a2) ^ mul13(a3);
 ;PCODE: $000003EC VOL: 0
 ;PCODE: $000003ED VOL: 0
 ;PCODE: $000003EE VOL: 0
 ;PCODE: $000003EF VOL: 0
-;
-;void InverseSubBytes(unsigned char *state)
-; 0000 013F {
 ;PCODE: $000003F0 VOL: 0
 ;PCODE: $000003F1 VOL: 0
-; 0000 0140     for (i=0; i<16; i++)
 ;PCODE: $000003F2 VOL: 0
-;	*state -> Y+0
 ;PCODE: $000003F3 VOL: 0
 ;PCODE: $000003F4 VOL: 0
 ;PCODE: $000003F5 VOL: 0
@@ -1447,7 +1462,6 @@
 ;PCODE: $000003FA VOL: 0
 ;PCODE: $000003FB VOL: 0
 ;PCODE: $000003FC VOL: 0
-; 0000 0141         state[i] = rsbox[state[i]];
 ;PCODE: $000003FD VOL: 0
 ;PCODE: $000003FE VOL: 0
 ;PCODE: $000003FF VOL: 0
@@ -1456,6 +1470,7 @@
 ;PCODE: $00000402 VOL: 0
 ;PCODE: $00000403 VOL: 0
 ;PCODE: $00000404 VOL: 0
+; 0000 0167         state[i+2] = mul13(a0) ^ mul9(a1) ^ mul14(a2) ^ mul11(a3);
 ;PCODE: $00000405 VOL: 0
 ;PCODE: $00000406 VOL: 0
 ;PCODE: $00000407 VOL: 0
@@ -1469,141 +1484,115 @@
 ;PCODE: $0000040F VOL: 0
 ;PCODE: $00000410 VOL: 0
 ;PCODE: $00000411 VOL: 0
-; 0000 0142 }
 ;PCODE: $00000412 VOL: 0
 ;PCODE: $00000413 VOL: 0
 ;PCODE: $00000414 VOL: 0
-;
-;void ShiftRows(unsigned char *state)
-; 0000 0145 {
 ;PCODE: $00000415 VOL: 0
 ;PCODE: $00000416 VOL: 0
-; 0000 0146     //Segunda fila
-; 0000 0147     //buffers
-; 0000 0148     unsigned char aux;
-; 0000 0149     aux=state[1];
 ;PCODE: $00000417 VOL: 0
 ;PCODE: $00000418 VOL: 0
-;	*state -> Y+1
-;	aux -> R16
 ;PCODE: $00000419 VOL: 0
 ;PCODE: $0000041A VOL: 0
 ;PCODE: $0000041B VOL: 0
-; 0000 014A     state[1]=state[5];
 ;PCODE: $0000041C VOL: 0
 ;PCODE: $0000041D VOL: 0
+; 0000 0168         state[i+3] = mul11(a0) ^ mul13(a1) ^ mul9(a2) ^ mul14(a3);
 ;PCODE: $0000041E VOL: 0
 ;PCODE: $0000041F VOL: 0
-; 0000 014B     state[5]=state[9];
 ;PCODE: $00000420 VOL: 0
 ;PCODE: $00000421 VOL: 0
 ;PCODE: $00000422 VOL: 0
 ;PCODE: $00000423 VOL: 0
-; 0000 014C     state[9]=state[13];
 ;PCODE: $00000424 VOL: 0
 ;PCODE: $00000425 VOL: 0
 ;PCODE: $00000426 VOL: 0
 ;PCODE: $00000427 VOL: 0
-; 0000 014D     state[13]=aux;
 ;PCODE: $00000428 VOL: 0
 ;PCODE: $00000429 VOL: 0
 ;PCODE: $0000042A VOL: 0
-; 0000 014E 
-; 0000 014F     //Tercera fila
-; 0000 0150     //buffers
-; 0000 0151     //SWAP state[8]<->state[10]
-; 0000 0152     aux=state[2];
 ;PCODE: $0000042B VOL: 0
 ;PCODE: $0000042C VOL: 0
 ;PCODE: $0000042D VOL: 0
-; 0000 0153     state[2]=state[10];
 ;PCODE: $0000042E VOL: 0
 ;PCODE: $0000042F VOL: 0
 ;PCODE: $00000430 VOL: 0
 ;PCODE: $00000431 VOL: 0
-; 0000 0154     state[10]=aux;
 ;PCODE: $00000432 VOL: 0
 ;PCODE: $00000433 VOL: 0
 ;PCODE: $00000434 VOL: 0
-; 0000 0155     //SWAP state[9]<->state[11]
-; 0000 0156     aux=state[6];
 ;PCODE: $00000435 VOL: 0
 ;PCODE: $00000436 VOL: 0
+; 0000 0169     }
 ;PCODE: $00000437 VOL: 0
-; 0000 0157     state[6]=state[14];
 ;PCODE: $00000438 VOL: 0
 ;PCODE: $00000439 VOL: 0
 ;PCODE: $0000043A VOL: 0
 ;PCODE: $0000043B VOL: 0
-; 0000 0158     state[14]=aux;
+; 0000 016A }
 ;PCODE: $0000043C VOL: 0
 ;PCODE: $0000043D VOL: 0
 ;PCODE: $0000043E VOL: 0
-; 0000 0159 
-; 0000 015A     //Cuarta fila
-; 0000 015B     //buffers
-; 0000 015C     aux=state[15];
 ;PCODE: $0000043F VOL: 0
+;
+;void InverseSubBytes(unsigned char *state)
+; 0000 016D {
 ;PCODE: $00000440 VOL: 0
 ;PCODE: $00000441 VOL: 0
-; 0000 015D     state[15]=state[11];
+; 0000 016E     for (i=0; i<16; i++)
 ;PCODE: $00000442 VOL: 0
+;	*state -> Y+0
 ;PCODE: $00000443 VOL: 0
 ;PCODE: $00000444 VOL: 0
 ;PCODE: $00000445 VOL: 0
-; 0000 015E     state[11]=state[7];
 ;PCODE: $00000446 VOL: 0
 ;PCODE: $00000447 VOL: 0
 ;PCODE: $00000448 VOL: 0
 ;PCODE: $00000449 VOL: 0
-; 0000 015F     state[7]=state[3];
 ;PCODE: $0000044A VOL: 0
 ;PCODE: $0000044B VOL: 0
 ;PCODE: $0000044C VOL: 0
+; 0000 016F         state[i] = rsbox[state[i]];
 ;PCODE: $0000044D VOL: 0
-; 0000 0160     state[3]=aux;
 ;PCODE: $0000044E VOL: 0
 ;PCODE: $0000044F VOL: 0
 ;PCODE: $00000450 VOL: 0
-; 0000 0161 
-; 0000 0162 }
 ;PCODE: $00000451 VOL: 0
 ;PCODE: $00000452 VOL: 0
 ;PCODE: $00000453 VOL: 0
 ;PCODE: $00000454 VOL: 0
 ;PCODE: $00000455 VOL: 0
-;
-;void InverseShiftRows(unsigned char *state)
-; 0000 0165 {
 ;PCODE: $00000456 VOL: 0
 ;PCODE: $00000457 VOL: 0
-; 0000 0166     unsigned char temp;
-; 0000 0167 
-; 0000 0168     temp = state[13];
 ;PCODE: $00000458 VOL: 0
 ;PCODE: $00000459 VOL: 0
-;	*state -> Y+1
-;	temp -> R16
 ;PCODE: $0000045A VOL: 0
 ;PCODE: $0000045B VOL: 0
 ;PCODE: $0000045C VOL: 0
-; 0000 0169     for (i=0; i<3; i++)
 ;PCODE: $0000045D VOL: 0
 ;PCODE: $0000045E VOL: 0
 ;PCODE: $0000045F VOL: 0
 ;PCODE: $00000460 VOL: 0
 ;PCODE: $00000461 VOL: 0
+; 0000 0170 }
 ;PCODE: $00000462 VOL: 0
 ;PCODE: $00000463 VOL: 0
 ;PCODE: $00000464 VOL: 0
+;
+;void InverseShiftRows(unsigned char *state)
+; 0000 0173 {
 ;PCODE: $00000465 VOL: 0
 ;PCODE: $00000466 VOL: 0
-; 0000 016A         state[13-(i*4)] = state[9-(i*4)];
+; 0000 0174     unsigned char temp;
+; 0000 0175 
+; 0000 0176     temp = state[13];
 ;PCODE: $00000467 VOL: 0
 ;PCODE: $00000468 VOL: 0
+;	*state -> Y+1
+;	temp -> R16
 ;PCODE: $00000469 VOL: 0
 ;PCODE: $0000046A VOL: 0
 ;PCODE: $0000046B VOL: 0
+; 0000 0177     for (i=0; i<3; i++)
 ;PCODE: $0000046C VOL: 0
 ;PCODE: $0000046D VOL: 0
 ;PCODE: $0000046E VOL: 0
@@ -1614,6 +1603,7 @@
 ;PCODE: $00000473 VOL: 0
 ;PCODE: $00000474 VOL: 0
 ;PCODE: $00000475 VOL: 0
+; 0000 0178         state[13-(i*4)] = state[9-(i*4)];
 ;PCODE: $00000476 VOL: 0
 ;PCODE: $00000477 VOL: 0
 ;PCODE: $00000478 VOL: 0
@@ -1622,12 +1612,9 @@
 ;PCODE: $0000047B VOL: 0
 ;PCODE: $0000047C VOL: 0
 ;PCODE: $0000047D VOL: 0
-; 0000 016B state[1] = temp;
 ;PCODE: $0000047E VOL: 0
 ;PCODE: $0000047F VOL: 0
 ;PCODE: $00000480 VOL: 0
-; 0000 016C 
-; 0000 016D     for (i=0; i<2; i++)
 ;PCODE: $00000481 VOL: 0
 ;PCODE: $00000482 VOL: 0
 ;PCODE: $00000483 VOL: 0
@@ -1638,16 +1625,16 @@
 ;PCODE: $00000488 VOL: 0
 ;PCODE: $00000489 VOL: 0
 ;PCODE: $0000048A VOL: 0
-; 0000 016E     {
-; 0000 016F         temp = state[(i*4)+2];
 ;PCODE: $0000048B VOL: 0
 ;PCODE: $0000048C VOL: 0
+; 0000 0179 state[1] = temp;
 ;PCODE: $0000048D VOL: 0
 ;PCODE: $0000048E VOL: 0
 ;PCODE: $0000048F VOL: 0
+; 0000 017A 
+; 0000 017B     for (i=0; i<2; i++)
 ;PCODE: $00000490 VOL: 0
 ;PCODE: $00000491 VOL: 0
-; 0000 0170         state[(i*4)+2] = state[(i*4)+10];
 ;PCODE: $00000492 VOL: 0
 ;PCODE: $00000493 VOL: 0
 ;PCODE: $00000494 VOL: 0
@@ -1656,49 +1643,51 @@
 ;PCODE: $00000497 VOL: 0
 ;PCODE: $00000498 VOL: 0
 ;PCODE: $00000499 VOL: 0
+; 0000 017C     {
+; 0000 017D         temp = state[(i*4)+2];
 ;PCODE: $0000049A VOL: 0
 ;PCODE: $0000049B VOL: 0
 ;PCODE: $0000049C VOL: 0
 ;PCODE: $0000049D VOL: 0
 ;PCODE: $0000049E VOL: 0
 ;PCODE: $0000049F VOL: 0
-; 0000 0171         state[(i*4)+10] = temp;
 ;PCODE: $000004A0 VOL: 0
+; 0000 017E         state[(i*4)+2] = state[(i*4)+10];
 ;PCODE: $000004A1 VOL: 0
 ;PCODE: $000004A2 VOL: 0
 ;PCODE: $000004A3 VOL: 0
 ;PCODE: $000004A4 VOL: 0
 ;PCODE: $000004A5 VOL: 0
 ;PCODE: $000004A6 VOL: 0
-; 0000 0172     }
 ;PCODE: $000004A7 VOL: 0
 ;PCODE: $000004A8 VOL: 0
 ;PCODE: $000004A9 VOL: 0
 ;PCODE: $000004AA VOL: 0
 ;PCODE: $000004AB VOL: 0
 ;PCODE: $000004AC VOL: 0
-; 0000 0173 
-; 0000 0174     temp = state[3];
 ;PCODE: $000004AD VOL: 0
 ;PCODE: $000004AE VOL: 0
+; 0000 017F         state[(i*4)+10] = temp;
 ;PCODE: $000004AF VOL: 0
-; 0000 0175     for (i=0; i<3; i++)
 ;PCODE: $000004B0 VOL: 0
 ;PCODE: $000004B1 VOL: 0
 ;PCODE: $000004B2 VOL: 0
 ;PCODE: $000004B3 VOL: 0
 ;PCODE: $000004B4 VOL: 0
 ;PCODE: $000004B5 VOL: 0
+; 0000 0180     }
 ;PCODE: $000004B6 VOL: 0
 ;PCODE: $000004B7 VOL: 0
 ;PCODE: $000004B8 VOL: 0
 ;PCODE: $000004B9 VOL: 0
-; 0000 0176         state[(i*4)+3] = state[(i*4)+7];
 ;PCODE: $000004BA VOL: 0
 ;PCODE: $000004BB VOL: 0
+; 0000 0181 
+; 0000 0182     temp = state[3];
 ;PCODE: $000004BC VOL: 0
 ;PCODE: $000004BD VOL: 0
 ;PCODE: $000004BE VOL: 0
+; 0000 0183     for (i=0; i<3; i++)
 ;PCODE: $000004BF VOL: 0
 ;PCODE: $000004C0 VOL: 0
 ;PCODE: $000004C1 VOL: 0
@@ -1709,65 +1698,66 @@
 ;PCODE: $000004C6 VOL: 0
 ;PCODE: $000004C7 VOL: 0
 ;PCODE: $000004C8 VOL: 0
+; 0000 0184         state[(i*4)+3] = state[(i*4)+7];
 ;PCODE: $000004C9 VOL: 0
 ;PCODE: $000004CA VOL: 0
 ;PCODE: $000004CB VOL: 0
 ;PCODE: $000004CC VOL: 0
 ;PCODE: $000004CD VOL: 0
-; 0000 0177 state[15] = temp;
 ;PCODE: $000004CE VOL: 0
 ;PCODE: $000004CF VOL: 0
 ;PCODE: $000004D0 VOL: 0
-; 0000 0178 
-; 0000 0179 }
 ;PCODE: $000004D1 VOL: 0
 ;PCODE: $000004D2 VOL: 0
 ;PCODE: $000004D3 VOL: 0
 ;PCODE: $000004D4 VOL: 0
 ;PCODE: $000004D5 VOL: 0
-;
-;void KeyExpansion (unsigned char *expandedKey){
-; 0000 017B void KeyExpansion (unsigned char *expandedKey){
 ;PCODE: $000004D6 VOL: 0
 ;PCODE: $000004D7 VOL: 0
-; 0000 017C         unsigned char temp[4], c=16, i=0, j, aux;
-; 0000 017D 
-; 0000 017E     while (c<176)
 ;PCODE: $000004D8 VOL: 0
 ;PCODE: $000004D9 VOL: 0
 ;PCODE: $000004DA VOL: 0
+;PCODE: $000004DB VOL: 0
+;PCODE: $000004DC VOL: 0
+; 0000 0185 state[15] = temp;
+;PCODE: $000004DD VOL: 0
+;PCODE: $000004DE VOL: 0
+;PCODE: $000004DF VOL: 0
+; 0000 0186 
+; 0000 0187 }
+;PCODE: $000004E0 VOL: 0
+;PCODE: $000004E1 VOL: 0
+;PCODE: $000004E2 VOL: 0
+;PCODE: $000004E3 VOL: 0
+;PCODE: $000004E4 VOL: 0
+;
+;//-------------------------------EXPANDIR KEY-------------------------------
+;void KeyExpansion (unsigned char *expandedKey){
+; 0000 018A void KeyExpansion (unsigned char *expandedKey){
+;PCODE: $000004E5 VOL: 0
+;PCODE: $000004E6 VOL: 0
+; 0000 018B         unsigned char temp[4], c=16, i=0, j, aux;
+; 0000 018C 
+; 0000 018D     while (c<176)
+;PCODE: $000004E7 VOL: 0
+;PCODE: $000004E8 VOL: 0
+;PCODE: $000004E9 VOL: 0
 ;	*expandedKey -> Y+8
 ;	temp -> Y+4
 ;	c -> R16
 ;	i -> R17
 ;	j -> R18
 ;	aux -> R19
-;PCODE: $000004DB VOL: 0
-;PCODE: $000004DC VOL: 0
-;PCODE: $000004DD VOL: 0
-;PCODE: $000004DE VOL: 0
-;PCODE: $000004DF VOL: 0
-;PCODE: $000004E0 VOL: 0
-;PCODE: $000004E1 VOL: 0
-;PCODE: $000004E2 VOL: 0
-; 0000 017F     {
-; 0000 0180          for (j=0; j<4; j++){
-;PCODE: $000004E3 VOL: 0
-;PCODE: $000004E4 VOL: 0
-;PCODE: $000004E5 VOL: 0
-;PCODE: $000004E6 VOL: 0
-;PCODE: $000004E7 VOL: 0
-;PCODE: $000004E8 VOL: 0
-;PCODE: $000004E9 VOL: 0
 ;PCODE: $000004EA VOL: 0
 ;PCODE: $000004EB VOL: 0
-; 0000 0181             temp[j]=expandedKey[j+c-4];
 ;PCODE: $000004EC VOL: 0
 ;PCODE: $000004ED VOL: 0
 ;PCODE: $000004EE VOL: 0
 ;PCODE: $000004EF VOL: 0
 ;PCODE: $000004F0 VOL: 0
 ;PCODE: $000004F1 VOL: 0
+; 0000 018E     {
+; 0000 018F          for (j=0; j<4; j++){
 ;PCODE: $000004F2 VOL: 0
 ;PCODE: $000004F3 VOL: 0
 ;PCODE: $000004F4 VOL: 0
@@ -1777,55 +1767,55 @@
 ;PCODE: $000004F8 VOL: 0
 ;PCODE: $000004F9 VOL: 0
 ;PCODE: $000004FA VOL: 0
+; 0000 0190             temp[j]=expandedKey[j+c-4];
 ;PCODE: $000004FB VOL: 0
-; 0000 0182         }
 ;PCODE: $000004FC VOL: 0
 ;PCODE: $000004FD VOL: 0
 ;PCODE: $000004FE VOL: 0
 ;PCODE: $000004FF VOL: 0
 ;PCODE: $00000500 VOL: 0
-; 0000 0183 
-; 0000 0184         if (c%16 == 0){
 ;PCODE: $00000501 VOL: 0
 ;PCODE: $00000502 VOL: 0
 ;PCODE: $00000503 VOL: 0
 ;PCODE: $00000504 VOL: 0
 ;PCODE: $00000505 VOL: 0
 ;PCODE: $00000506 VOL: 0
-; 0000 0185             //rotate(temp)==> Shifteo cíclico a la derecha
-; 0000 0186             aux=temp[0];
 ;PCODE: $00000507 VOL: 0
 ;PCODE: $00000508 VOL: 0
-; 0000 0187             temp[0]=temp[1];
 ;PCODE: $00000509 VOL: 0
 ;PCODE: $0000050A VOL: 0
-; 0000 0188             temp[1]=temp[2];
+; 0000 0191         }
 ;PCODE: $0000050B VOL: 0
 ;PCODE: $0000050C VOL: 0
-; 0000 0189             temp[2]=temp[3];
 ;PCODE: $0000050D VOL: 0
 ;PCODE: $0000050E VOL: 0
-; 0000 018A             temp[3]=aux;
 ;PCODE: $0000050F VOL: 0
+; 0000 0192 
+; 0000 0193         if (c%16 == 0){
 ;PCODE: $00000510 VOL: 0
-; 0000 018B 
-; 0000 018C             for (j=0; j<4; j++){
 ;PCODE: $00000511 VOL: 0
 ;PCODE: $00000512 VOL: 0
 ;PCODE: $00000513 VOL: 0
 ;PCODE: $00000514 VOL: 0
 ;PCODE: $00000515 VOL: 0
+; 0000 0194             //rotate(temp)==> Shifteo cÃ­clico a la derecha
+; 0000 0195             aux=temp[0];
 ;PCODE: $00000516 VOL: 0
 ;PCODE: $00000517 VOL: 0
+; 0000 0196             temp[0]=temp[1];
 ;PCODE: $00000518 VOL: 0
 ;PCODE: $00000519 VOL: 0
-; 0000 018D                 temp[j]=sbox[temp[j]];
+; 0000 0197             temp[1]=temp[2];
 ;PCODE: $0000051A VOL: 0
 ;PCODE: $0000051B VOL: 0
+; 0000 0198             temp[2]=temp[3];
 ;PCODE: $0000051C VOL: 0
 ;PCODE: $0000051D VOL: 0
+; 0000 0199             temp[3]=aux;
 ;PCODE: $0000051E VOL: 0
 ;PCODE: $0000051F VOL: 0
+; 0000 019A 
+; 0000 019B             for (j=0; j<4; j++){
 ;PCODE: $00000520 VOL: 0
 ;PCODE: $00000521 VOL: 0
 ;PCODE: $00000522 VOL: 0
@@ -1835,14 +1825,12 @@
 ;PCODE: $00000526 VOL: 0
 ;PCODE: $00000527 VOL: 0
 ;PCODE: $00000528 VOL: 0
-; 0000 018E             }
+; 0000 019C                 temp[j]=sbox[temp[j]];
 ;PCODE: $00000529 VOL: 0
 ;PCODE: $0000052A VOL: 0
 ;PCODE: $0000052B VOL: 0
 ;PCODE: $0000052C VOL: 0
 ;PCODE: $0000052D VOL: 0
-; 0000 018F 
-; 0000 0190             temp[0]=temp[0]^rcon[i]; //XOR con la constante de ronda i
 ;PCODE: $0000052E VOL: 0
 ;PCODE: $0000052F VOL: 0
 ;PCODE: $00000530 VOL: 0
@@ -1850,28 +1838,29 @@
 ;PCODE: $00000532 VOL: 0
 ;PCODE: $00000533 VOL: 0
 ;PCODE: $00000534 VOL: 0
-; 0000 0191             i++;
 ;PCODE: $00000535 VOL: 0
 ;PCODE: $00000536 VOL: 0
-; 0000 0192         }
-; 0000 0193           for (j=0; j<4; j++)
 ;PCODE: $00000537 VOL: 0
+; 0000 019D             }
 ;PCODE: $00000538 VOL: 0
 ;PCODE: $00000539 VOL: 0
 ;PCODE: $0000053A VOL: 0
 ;PCODE: $0000053B VOL: 0
 ;PCODE: $0000053C VOL: 0
+; 0000 019E 
+; 0000 019F             temp[0]=temp[0]^rcon[i]; //XOR con la constante de ronda i
 ;PCODE: $0000053D VOL: 0
 ;PCODE: $0000053E VOL: 0
 ;PCODE: $0000053F VOL: 0
 ;PCODE: $00000540 VOL: 0
-; 0000 0194         {
-; 0000 0195               expandedKey[c]=expandedKey[c-16]^temp[j];
 ;PCODE: $00000541 VOL: 0
 ;PCODE: $00000542 VOL: 0
 ;PCODE: $00000543 VOL: 0
+; 0000 01A0             i++;
 ;PCODE: $00000544 VOL: 0
 ;PCODE: $00000545 VOL: 0
+; 0000 01A1         }
+; 0000 01A2           for (j=0; j<4; j++)
 ;PCODE: $00000546 VOL: 0
 ;PCODE: $00000547 VOL: 0
 ;PCODE: $00000548 VOL: 0
@@ -1882,194 +1871,196 @@
 ;PCODE: $0000054D VOL: 0
 ;PCODE: $0000054E VOL: 0
 ;PCODE: $0000054F VOL: 0
+; 0000 01A3         {
+; 0000 01A4               expandedKey[c]=expandedKey[c-16]^temp[j];
 ;PCODE: $00000550 VOL: 0
 ;PCODE: $00000551 VOL: 0
 ;PCODE: $00000552 VOL: 0
 ;PCODE: $00000553 VOL: 0
-; 0000 0196               c++;
 ;PCODE: $00000554 VOL: 0
 ;PCODE: $00000555 VOL: 0
-; 0000 0197         }
 ;PCODE: $00000556 VOL: 0
 ;PCODE: $00000557 VOL: 0
 ;PCODE: $00000558 VOL: 0
 ;PCODE: $00000559 VOL: 0
 ;PCODE: $0000055A VOL: 0
-; 0000 0198     }
 ;PCODE: $0000055B VOL: 0
 ;PCODE: $0000055C VOL: 0
-; 0000 0199 
-; 0000 019A }
 ;PCODE: $0000055D VOL: 0
 ;PCODE: $0000055E VOL: 0
 ;PCODE: $0000055F VOL: 0
 ;PCODE: $00000560 VOL: 0
-;
-;void Cipher(unsigned char *in, unsigned char expandedKey[176])
-; 0000 019D {
 ;PCODE: $00000561 VOL: 0
 ;PCODE: $00000562 VOL: 0
-; 0000 019E     unsigned char state[16], i;
-; 0000 019F     for(i=0;i<16;i++){
+; 0000 01A5               c++;
 ;PCODE: $00000563 VOL: 0
 ;PCODE: $00000564 VOL: 0
+; 0000 01A6         }
 ;PCODE: $00000565 VOL: 0
-;	*in -> Y+19
-;	expandedKey -> Y+17
-;	state -> Y+1
-;	i -> R16
 ;PCODE: $00000566 VOL: 0
 ;PCODE: $00000567 VOL: 0
 ;PCODE: $00000568 VOL: 0
 ;PCODE: $00000569 VOL: 0
+; 0000 01A7     }
 ;PCODE: $0000056A VOL: 0
 ;PCODE: $0000056B VOL: 0
+; 0000 01A8 
+; 0000 01A9 }
 ;PCODE: $0000056C VOL: 0
 ;PCODE: $0000056D VOL: 0
 ;PCODE: $0000056E VOL: 0
-; 0000 01A0         state[i]=in[i];
 ;PCODE: $0000056F VOL: 0
+;//----------------------------------CIFRAR----------------------------------
+;void Cipher(unsigned char *in, unsigned char expandedKey[176])
+; 0000 01AC {
 ;PCODE: $00000570 VOL: 0
 ;PCODE: $00000571 VOL: 0
+; 0000 01AD     unsigned char state[16], i;
+; 0000 01AE     for(i=0;i<16;i++){
 ;PCODE: $00000572 VOL: 0
 ;PCODE: $00000573 VOL: 0
 ;PCODE: $00000574 VOL: 0
+;	*in -> Y+19
+;	expandedKey -> Y+17
+;	state -> Y+1
+;	i -> R16
 ;PCODE: $00000575 VOL: 0
 ;PCODE: $00000576 VOL: 0
 ;PCODE: $00000577 VOL: 0
 ;PCODE: $00000578 VOL: 0
-; 0000 01A1     }
 ;PCODE: $00000579 VOL: 0
 ;PCODE: $0000057A VOL: 0
 ;PCODE: $0000057B VOL: 0
 ;PCODE: $0000057C VOL: 0
 ;PCODE: $0000057D VOL: 0
-; 0000 01A2 
-; 0000 01A3     AddRoundKey(state, expandedKey,0);
+; 0000 01AF         state[i]=in[i];
 ;PCODE: $0000057E VOL: 0
 ;PCODE: $0000057F VOL: 0
 ;PCODE: $00000580 VOL: 0
 ;PCODE: $00000581 VOL: 0
 ;PCODE: $00000582 VOL: 0
 ;PCODE: $00000583 VOL: 0
-; 0000 01A4     //round++;
-; 0000 01A5 
-; 0000 01A6     for(i=1; i<10;i++){
 ;PCODE: $00000584 VOL: 0
 ;PCODE: $00000585 VOL: 0
 ;PCODE: $00000586 VOL: 0
 ;PCODE: $00000587 VOL: 0
+; 0000 01B0     }
 ;PCODE: $00000588 VOL: 0
 ;PCODE: $00000589 VOL: 0
 ;PCODE: $0000058A VOL: 0
 ;PCODE: $0000058B VOL: 0
 ;PCODE: $0000058C VOL: 0
-; 0000 01A7         SubBytes(state);
+; 0000 01B1 
+; 0000 01B2     AddRoundKey(state, expandedKey,0);
 ;PCODE: $0000058D VOL: 0
 ;PCODE: $0000058E VOL: 0
-; 0000 01A8         ShiftRows(state);
 ;PCODE: $0000058F VOL: 0
 ;PCODE: $00000590 VOL: 0
-; 0000 01A9         MixColumns(state);
 ;PCODE: $00000591 VOL: 0
 ;PCODE: $00000592 VOL: 0
-; 0000 01AA         AddRoundKey(state, expandedKey,i);
+; 0000 01B3     //round++;
+; 0000 01B4 
+; 0000 01B5     for(i=1; i<10;i++){
 ;PCODE: $00000593 VOL: 0
 ;PCODE: $00000594 VOL: 0
 ;PCODE: $00000595 VOL: 0
 ;PCODE: $00000596 VOL: 0
 ;PCODE: $00000597 VOL: 0
 ;PCODE: $00000598 VOL: 0
-; 0000 01AB         //round++;
-; 0000 01AC     }
 ;PCODE: $00000599 VOL: 0
 ;PCODE: $0000059A VOL: 0
 ;PCODE: $0000059B VOL: 0
+; 0000 01B6         SubBytes(state);
 ;PCODE: $0000059C VOL: 0
 ;PCODE: $0000059D VOL: 0
-; 0000 01AD     //round++;
-; 0000 01AE     SubBytes(state);
+; 0000 01B7         ShiftRows(state);
 ;PCODE: $0000059E VOL: 0
 ;PCODE: $0000059F VOL: 0
-; 0000 01AF     ShiftRows(state);
+; 0000 01B8         MixColumns(state);
 ;PCODE: $000005A0 VOL: 0
 ;PCODE: $000005A1 VOL: 0
-; 0000 01B0     AddRoundKey(state, expandedKey,10);
+; 0000 01B9         AddRoundKey(state, expandedKey,i);
 ;PCODE: $000005A2 VOL: 0
 ;PCODE: $000005A3 VOL: 0
 ;PCODE: $000005A4 VOL: 0
 ;PCODE: $000005A5 VOL: 0
 ;PCODE: $000005A6 VOL: 0
 ;PCODE: $000005A7 VOL: 0
-; 0000 01B1 
-; 0000 01B2 
-; 0000 01B3     for(i=0;i<16;i++){
+; 0000 01BA         //round++;
+; 0000 01BB     }
 ;PCODE: $000005A8 VOL: 0
 ;PCODE: $000005A9 VOL: 0
 ;PCODE: $000005AA VOL: 0
 ;PCODE: $000005AB VOL: 0
 ;PCODE: $000005AC VOL: 0
+; 0000 01BC     //round++;
+; 0000 01BD     SubBytes(state);
 ;PCODE: $000005AD VOL: 0
 ;PCODE: $000005AE VOL: 0
+; 0000 01BE     ShiftRows(state);
 ;PCODE: $000005AF VOL: 0
 ;PCODE: $000005B0 VOL: 0
-; 0000 01B4         in[i]=state[i];
+; 0000 01BF     AddRoundKey(state, expandedKey,10);
 ;PCODE: $000005B1 VOL: 0
 ;PCODE: $000005B2 VOL: 0
 ;PCODE: $000005B3 VOL: 0
 ;PCODE: $000005B4 VOL: 0
 ;PCODE: $000005B5 VOL: 0
 ;PCODE: $000005B6 VOL: 0
+; 0000 01C0     round=0;
 ;PCODE: $000005B7 VOL: 0
 ;PCODE: $000005B8 VOL: 0
+; 0000 01C1 
+; 0000 01C2     for(i=0;i<16;i++){
 ;PCODE: $000005B9 VOL: 0
 ;PCODE: $000005BA VOL: 0
 ;PCODE: $000005BB VOL: 0
 ;PCODE: $000005BC VOL: 0
-; 0000 01B5     }
 ;PCODE: $000005BD VOL: 0
 ;PCODE: $000005BE VOL: 0
 ;PCODE: $000005BF VOL: 0
 ;PCODE: $000005C0 VOL: 0
 ;PCODE: $000005C1 VOL: 0
-; 0000 01B6 }
+; 0000 01C3         in[i]=state[i];
 ;PCODE: $000005C2 VOL: 0
 ;PCODE: $000005C3 VOL: 0
 ;PCODE: $000005C4 VOL: 0
 ;PCODE: $000005C5 VOL: 0
 ;PCODE: $000005C6 VOL: 0
-;
-;void Decipher(unsigned char *in, unsigned char expandedkey[176])
-; 0000 01B9 {
 ;PCODE: $000005C7 VOL: 0
 ;PCODE: $000005C8 VOL: 0
-; 0000 01BA     unsigned char state[16], j;
-; 0000 01BB     for (i=0; i<16; i++)
 ;PCODE: $000005C9 VOL: 0
 ;PCODE: $000005CA VOL: 0
 ;PCODE: $000005CB VOL: 0
-;	*in -> Y+19
-;	expandedkey -> Y+17
-;	state -> Y+1
-;	j -> R16
 ;PCODE: $000005CC VOL: 0
 ;PCODE: $000005CD VOL: 0
+; 0000 01C4     }
 ;PCODE: $000005CE VOL: 0
 ;PCODE: $000005CF VOL: 0
 ;PCODE: $000005D0 VOL: 0
 ;PCODE: $000005D1 VOL: 0
 ;PCODE: $000005D2 VOL: 0
+; 0000 01C5 }
 ;PCODE: $000005D3 VOL: 0
 ;PCODE: $000005D4 VOL: 0
 ;PCODE: $000005D5 VOL: 0
-; 0000 01BC         state[i] = in[i];
 ;PCODE: $000005D6 VOL: 0
 ;PCODE: $000005D7 VOL: 0
+;
+;//----------------------------------CIFRAR----------------------------------
+;void Decipher(unsigned char *in, unsigned char expandedkey[176])
+; 0000 01C9 {
 ;PCODE: $000005D8 VOL: 0
 ;PCODE: $000005D9 VOL: 0
+; 0000 01CA     unsigned char state[16], j;
+; 0000 01CB     for (i=0; i<16; i++)
 ;PCODE: $000005DA VOL: 0
 ;PCODE: $000005DB VOL: 0
 ;PCODE: $000005DC VOL: 0
+;	*in -> Y+19
+;	expandedkey -> Y+17
+;	state -> Y+1
+;	j -> R16
 ;PCODE: $000005DD VOL: 0
 ;PCODE: $000005DE VOL: 0
 ;PCODE: $000005DF VOL: 0
@@ -2080,16 +2071,14 @@
 ;PCODE: $000005E4 VOL: 0
 ;PCODE: $000005E5 VOL: 0
 ;PCODE: $000005E6 VOL: 0
+; 0000 01CC         state[i] = in[i];
 ;PCODE: $000005E7 VOL: 0
-; 0000 01BE InvAddRoundKey(state, expandedkey, 0);
 ;PCODE: $000005E8 VOL: 0
 ;PCODE: $000005E9 VOL: 0
 ;PCODE: $000005EA VOL: 0
 ;PCODE: $000005EB VOL: 0
 ;PCODE: $000005EC VOL: 0
 ;PCODE: $000005ED VOL: 0
-; 0000 01BF 
-; 0000 01C0     for (j=1; j<10; j++)
 ;PCODE: $000005EE VOL: 0
 ;PCODE: $000005EF VOL: 0
 ;PCODE: $000005F0 VOL: 0
@@ -2099,63 +2088,65 @@
 ;PCODE: $000005F4 VOL: 0
 ;PCODE: $000005F5 VOL: 0
 ;PCODE: $000005F6 VOL: 0
-; 0000 01C1     {
-; 0000 01C2        InverseShiftRows(state);
 ;PCODE: $000005F7 VOL: 0
 ;PCODE: $000005F8 VOL: 0
-; 0000 01C3        InverseSubBytes(state);
+; 0000 01CE InvAddRoundKey(state, expandedkey, 0);
 ;PCODE: $000005F9 VOL: 0
 ;PCODE: $000005FA VOL: 0
-; 0000 01C4         InvAddRoundKey(state, expandedkey, j);
 ;PCODE: $000005FB VOL: 0
 ;PCODE: $000005FC VOL: 0
 ;PCODE: $000005FD VOL: 0
 ;PCODE: $000005FE VOL: 0
+; 0000 01CF 
+; 0000 01D0     for (j=1; j<10; j++)
 ;PCODE: $000005FF VOL: 0
 ;PCODE: $00000600 VOL: 0
-; 0000 01C5        InverseMixColumns(state);
 ;PCODE: $00000601 VOL: 0
 ;PCODE: $00000602 VOL: 0
-; 0000 01C6     }
 ;PCODE: $00000603 VOL: 0
 ;PCODE: $00000604 VOL: 0
 ;PCODE: $00000605 VOL: 0
 ;PCODE: $00000606 VOL: 0
 ;PCODE: $00000607 VOL: 0
-; 0000 01C7 
-; 0000 01C8     InverseShiftRows(state);
+; 0000 01D1     {
+; 0000 01D2        InverseShiftRows(state);
 ;PCODE: $00000608 VOL: 0
 ;PCODE: $00000609 VOL: 0
-; 0000 01C9     InverseSubBytes(state);
+; 0000 01D3        InverseSubBytes(state);
 ;PCODE: $0000060A VOL: 0
 ;PCODE: $0000060B VOL: 0
-; 0000 01CA     InvAddRoundKey(state, expandedkey, 10);
+; 0000 01D4         InvAddRoundKey(state, expandedkey, j);
 ;PCODE: $0000060C VOL: 0
 ;PCODE: $0000060D VOL: 0
 ;PCODE: $0000060E VOL: 0
 ;PCODE: $0000060F VOL: 0
 ;PCODE: $00000610 VOL: 0
 ;PCODE: $00000611 VOL: 0
-; 0000 01CB 
-; 0000 01CC     for (i=0; i<16; i++)
+; 0000 01D5        InverseMixColumns(state);
 ;PCODE: $00000612 VOL: 0
 ;PCODE: $00000613 VOL: 0
+; 0000 01D6     }
 ;PCODE: $00000614 VOL: 0
 ;PCODE: $00000615 VOL: 0
 ;PCODE: $00000616 VOL: 0
 ;PCODE: $00000617 VOL: 0
 ;PCODE: $00000618 VOL: 0
+; 0000 01D7 
+; 0000 01D8     InverseShiftRows(state);
 ;PCODE: $00000619 VOL: 0
 ;PCODE: $0000061A VOL: 0
+; 0000 01D9     InverseSubBytes(state);
 ;PCODE: $0000061B VOL: 0
-; 0000 01CD         in[i] = state[i];
 ;PCODE: $0000061C VOL: 0
+; 0000 01DA     InvAddRoundKey(state, expandedkey, 10);
 ;PCODE: $0000061D VOL: 0
 ;PCODE: $0000061E VOL: 0
 ;PCODE: $0000061F VOL: 0
 ;PCODE: $00000620 VOL: 0
 ;PCODE: $00000621 VOL: 0
 ;PCODE: $00000622 VOL: 0
+; 0000 01DB 
+; 0000 01DC     for (i=0; i<16; i++)
 ;PCODE: $00000623 VOL: 0
 ;PCODE: $00000624 VOL: 0
 ;PCODE: $00000625 VOL: 0
@@ -2166,209 +2157,194 @@
 ;PCODE: $0000062A VOL: 0
 ;PCODE: $0000062B VOL: 0
 ;PCODE: $0000062C VOL: 0
+; 0000 01DD         in[i] = state[i];
 ;PCODE: $0000062D VOL: 0
-; 0000 01CE }
 ;PCODE: $0000062E VOL: 0
 ;PCODE: $0000062F VOL: 0
 ;PCODE: $00000630 VOL: 0
 ;PCODE: $00000631 VOL: 0
 ;PCODE: $00000632 VOL: 0
-;
-;interrupt [TIM1_COMPA] void timer1_compa_isr(void)
-; 0000 01D1 {
 ;PCODE: $00000633 VOL: 0
 ;PCODE: $00000634 VOL: 0
-; 0000 01D2 disk_timerproc();
 ;PCODE: $00000635 VOL: 0
-; 0000 01D3 /* MMC/SD/SD HC card access low level timing function */
-; 0000 01D4 }
 ;PCODE: $00000636 VOL: 0
 ;PCODE: $00000637 VOL: 0
 ;PCODE: $00000638 VOL: 0
-;
-;
-;// Timer2 output compare interrupt service routine
-;interrupt [TIM2_COMPA] void timer2_compa_isr(void)
-; 0000 01D9 {
 ;PCODE: $00000639 VOL: 0
 ;PCODE: $0000063A VOL: 0
-; 0000 01DA   mseg++;
 ;PCODE: $0000063B VOL: 0
 ;PCODE: $0000063C VOL: 0
 ;PCODE: $0000063D VOL: 0
 ;PCODE: $0000063E VOL: 0
-; 0000 01DB }
+; 0000 01DE }
 ;PCODE: $0000063F VOL: 0
 ;PCODE: $00000640 VOL: 0
 ;PCODE: $00000641 VOL: 0
+;PCODE: $00000642 VOL: 0
+;PCODE: $00000643 VOL: 0
 ;
 ;void main()
-; 0000 01DE {
-;PCODE: $00000642 VOL: 0
-; 0000 01DF     unsigned int  br;
-; 0000 01E0     unsigned char i;
-; 0000 01E1 
-; 0000 01E2     /* FAT function result */
-; 0000 01E3     FRESULT res;
-; 0000 01E4 
-; 0000 01E5     /* will hold the information for logical drive 0: */
-; 0000 01E6     FATFS drive;
-; 0000 01E7     FIL archivo1, archivo2; // file objects
-; 0000 01E8 
-; 0000 01E9     CLKPR=0x80;
-;PCODE: $00000643 VOL: 0
+; 0000 01E1 {
+;PCODE: $00000644 VOL: 0
+; 0000 01E2     unsigned int  br;
+; 0000 01E3 
+; 0000 01E4     /* FAT function result */
+; 0000 01E5     FRESULT res;
+; 0000 01E6 
+; 0000 01E7     /* will hold the information for logical drive 0: */
+; 0000 01E8     FATFS drive;
+; 0000 01E9     FIL archivo1, archivo2; // file objects
+; 0000 01EA 
+; 0000 01EB     CLKPR=0x80;
+;PCODE: $00000645 VOL: 0
 ;	br -> R16,R17
-;	i -> R18
-;	res -> R19
+;	res -> R18
 ;	drive -> Y+1088
 ;	archivo1 -> Y+544
 ;	archivo2 -> Y+0
-;PCODE: $00000644 VOL: 0
-;PCODE: $00000645 VOL: 0
-; 0000 01EA     CLKPR=1;    //Micro Trabajará a 8MHz
 ;PCODE: $00000646 VOL: 0
 ;PCODE: $00000647 VOL: 0
-; 0000 01EB 
-; 0000 01EC     NombreArchivo[0]='0';
+; 0000 01EC     CLKPR=1;    //Micro TrabajarÃ¡ a 8MHz
 ;PCODE: $00000648 VOL: 0
 ;PCODE: $00000649 VOL: 0
-; 0000 01ED     NombreArchivo[1]=':';
+; 0000 01ED 
+; 0000 01EE     NombreArchivo[0]='0';
 ;PCODE: $0000064A VOL: 0
 ;PCODE: $0000064B VOL: 0
+; 0000 01EF     NombreArchivo[1]=':';
 ;PCODE: $0000064C VOL: 0
-; 0000 01EE 
-; 0000 01EF     // USART1 initialization
-; 0000 01F0     // Communication Parameters: 8 Data, 1 Stop, No Parity
-; 0000 01F1     // USART1 Receiver: On
-; 0000 01F2     // USART1 Transmitter: On
-; 0000 01F3     // USART1 Mode: Asynchronous
-; 0000 01F4     // USART1 Baud Rate: 9600
-; 0000 01F5     UCSR1A=(0<<RXC1) | (0<<TXC1) | (0<<UDRE1) | (0<<FE1) | (0<<DOR1) | (0<<UPE1) | (0<<U2X1) | (0<<MPCM1);
 ;PCODE: $0000064D VOL: 0
 ;PCODE: $0000064E VOL: 0
-; 0000 01F6     UCSR1B=(0<<RXCIE1) | (0<<TXCIE1) | (0<<UDRIE1) | (1<<RXEN1) | (1<<TXEN1) | (0<<UCSZ12) | (0<<RXB81) | (0<<TXB81);
+; 0000 01F0 
+; 0000 01F1     // USART1 initialization
+; 0000 01F2     // Communication Parameters: 8 Data, 1 Stop, No Parity
+; 0000 01F3     // USART1 Receiver: On
+; 0000 01F4     // USART1 Transmitter: On
+; 0000 01F5     // USART1 Mode: Asynchronous
+; 0000 01F6     // USART1 Baud Rate: 9600
+; 0000 01F7     UCSR1A=(0<<RXC1) | (0<<TXC1) | (0<<UDRE1) | (0<<FE1) | (0<<DOR1) | (0<<UPE1) | (0<<U2X1) | (0<<MPCM1);
 ;PCODE: $0000064F VOL: 0
 ;PCODE: $00000650 VOL: 0
-; 0000 01F7     UCSR1C=(0<<UMSEL11) | (0<<UMSEL10) | (0<<UPM11) | (0<<UPM10) | (0<<USBS1) | (1<<UCSZ11) | (1<<UCSZ10) | (0<<UCPOL1);
+; 0000 01F8     UCSR1B=(0<<RXCIE1) | (0<<TXCIE1) | (0<<UDRIE1) | (1<<RXEN1) | (1<<TXEN1) | (0<<UCSZ12) | (0<<RXB81) | (0<<TXB81);
 ;PCODE: $00000651 VOL: 0
 ;PCODE: $00000652 VOL: 0
-; 0000 01F8     UBRR1H=0x00;
+; 0000 01F9     UCSR1C=(0<<UMSEL11) | (0<<UMSEL10) | (0<<UPM11) | (0<<UPM10) | (0<<USBS1) | (1<<UCSZ11) | (1<<UCSZ10) | (0<<UCPOL1);
 ;PCODE: $00000653 VOL: 0
 ;PCODE: $00000654 VOL: 0
-; 0000 01F9     UBRR1L=0x33;
+; 0000 01FA     UBRR1H=0x00;
 ;PCODE: $00000655 VOL: 0
 ;PCODE: $00000656 VOL: 0
-; 0000 01FA 
-; 0000 01FB     // Timer/Counter 2 initialization
-; 0000 01FC     // Clock source: System Clock
-; 0000 01FD     // Clock value: 250.000 kHz
-; 0000 01FE     // Mode: CTC top=OCR2A
-; 0000 01FF     // OC2A output: Disconnected
-; 0000 0200     // OC2B output: Disconnected
-; 0000 0201     TCCR2A=0x02;
+; 0000 01FB     UBRR1L=0x33;
 ;PCODE: $00000657 VOL: 0
 ;PCODE: $00000658 VOL: 0
-; 0000 0202     TCCR2B=0x03;       //Interrupción cada 1mseg para conteo de tiempo
+; 0000 01FC 
+; 0000 01FD     // Timer/Counter 2 initialization
+; 0000 01FE     // Clock source: System Clock
+; 0000 01FF     // Clock value: 250.000 kHz
+; 0000 0200     // Mode: CTC top=OCR2A
+; 0000 0201     // OC2A output: Disconnected
+; 0000 0202     // OC2B output: Disconnected
+; 0000 0203     TCCR2A=0x02;
 ;PCODE: $00000659 VOL: 0
 ;PCODE: $0000065A VOL: 0
-; 0000 0203     OCR2A=249;
+; 0000 0204     TCCR2B=0x03;       //Interrupción cada 1mseg para conteo de tiempo
 ;PCODE: $0000065B VOL: 0
 ;PCODE: $0000065C VOL: 0
-; 0000 0204     TIMSK2=0x02;
+; 0000 0205     OCR2A=249;
 ;PCODE: $0000065D VOL: 0
 ;PCODE: $0000065E VOL: 0
-; 0000 0205 
-; 0000 0206     // Código para hacer una interrupción periódica cada 10ms que pide SD
-; 0000 0207     // Timer/Counter 1 initialization
-; 0000 0208     // Clock source: System Clock
-; 0000 0209     // Clock value: 1000.000 kHz
-; 0000 020A     // Mode: CTC top=OCR1A
-; 0000 020B     // Compare A Match Interrupt: On
-; 0000 020C     TCCR1B=0x0A;
+; 0000 0206     TIMSK2=0x02;
 ;PCODE: $0000065F VOL: 0
 ;PCODE: $00000660 VOL: 0
-; 0000 020D     OCR1AH=0x27;
+; 0000 0207 
+; 0000 0208     // Código para hacer una interrupción periódica cada 10ms que pide SD
+; 0000 0209     // Timer/Counter 1 initialization
+; 0000 020A     // Clock source: System Clock
+; 0000 020B     // Clock value: 1000.000 kHz
+; 0000 020C     // Mode: CTC top=OCR1A
+; 0000 020D     // Compare A Match Interrupt: On
+; 0000 020E     TCCR1B=0x0A;
 ;PCODE: $00000661 VOL: 0
 ;PCODE: $00000662 VOL: 0
-; 0000 020E     OCR1AL=0x0F;
+; 0000 020F     OCR1AH=0x27;
 ;PCODE: $00000663 VOL: 0
 ;PCODE: $00000664 VOL: 0
-; 0000 020F     TIMSK1=0x02;
+; 0000 0210     OCR1AL=0x0F;
 ;PCODE: $00000665 VOL: 0
 ;PCODE: $00000666 VOL: 0
-; 0000 0210     SetupLCD();
+; 0000 0211     TIMSK1=0x02;
 ;PCODE: $00000667 VOL: 0
-; 0000 0211     StringLCD("Proyecto AES");
 ;PCODE: $00000668 VOL: 0
+; 0000 0212     SetupLCD();
 ;PCODE: $00000669 VOL: 0
+; 0000 0213     #asm("sei")
 ;PCODE: $0000066A VOL: 0
-; 0000 0212     #asm("sei")
-;PCODE: $0000066B VOL: 0
 	sei
+;PCODE: $0000066B VOL: 0
+; 0000 0214     /* Inicia el puerto SPI para la SD */
+; 0000 0215     disk_initialize(0);
 ;PCODE: $0000066C VOL: 0
-; 0000 0213     /* Inicia el puerto SPI para la SD */
-; 0000 0214     disk_initialize(0);
 ;PCODE: $0000066D VOL: 0
+; 0000 0216     delay_ms(200);
 ;PCODE: $0000066E VOL: 0
-; 0000 0215     delay_ms(200);
 ;PCODE: $0000066F VOL: 0
 ;PCODE: $00000670 VOL: 0
+; 0000 0217 
+; 0000 0218     /* mount logical drive 0: */
+; 0000 0219     if ((res=f_mount(0,&drive))==FR_OK){
 ;PCODE: $00000671 VOL: 0
-; 0000 0216 
-; 0000 0217     /* mount logical drive 0: */
-; 0000 0218     if ((res=f_mount(0,&drive))==FR_OK){
 ;PCODE: $00000672 VOL: 0
 ;PCODE: $00000673 VOL: 0
 ;PCODE: $00000674 VOL: 0
 ;PCODE: $00000675 VOL: 0
 ;PCODE: $00000676 VOL: 0
 ;PCODE: $00000677 VOL: 0
+; 0000 021A 
+; 0000 021B       while(1){
 ;PCODE: $00000678 VOL: 0
-; 0000 0219 
-; 0000 021A       while(1){
+; 0000 021C         while((UCSR1A&0x80)!=0){
 ;PCODE: $00000679 VOL: 0
-; 0000 021B         while((UCSR1A&0x80)!=0){
 ;PCODE: $0000067A VOL: 0
 ;PCODE: $0000067B VOL: 0
 ;PCODE: $0000067C VOL: 0
+; 0000 021D                                 //Limpiar buffer serial (Ãºtil para terminal real)
+; 0000 021E            opcion=getchar();
 ;PCODE: $0000067D VOL: 0
-; 0000 021C                                 //Limpiar buffer serial (útil para terminal real)
-; 0000 021D            opcion=getchar();
 ;PCODE: $0000067E VOL: 0
+; 0000 021F         };
 ;PCODE: $0000067F VOL: 0
-; 0000 021E         };
 ;PCODE: $00000680 VOL: 0
+; 0000 0220         printf("MENU CIFRADO AES   1)CIFRAR  2)DESCIFRAR\n\r");
 ;PCODE: $00000681 VOL: 0
-; 0000 021F         printf("MENU CIFRADO AES   1)CIFRAR  2)DESCIFRAR\n\r");
 ;PCODE: $00000682 VOL: 0
 ;PCODE: $00000683 VOL: 0
 ;PCODE: $00000684 VOL: 0
 ;PCODE: $00000685 VOL: 0
 ;PCODE: $00000686 VOL: 0
 ;PCODE: $00000687 VOL: 0
+; 0000 0221         opcion=getchar();
 ;PCODE: $00000688 VOL: 0
-; 0000 0220         opcion=getchar();
 ;PCODE: $00000689 VOL: 0
+; 0000 0222         if (opcion=='1')
 ;PCODE: $0000068A VOL: 0
-; 0000 0221         if (opcion=='1')
 ;PCODE: $0000068B VOL: 0
 ;PCODE: $0000068C VOL: 0
+; 0000 0223         {
+; 0000 0224            br=0;
 ;PCODE: $0000068D VOL: 0
-; 0000 0222         {
-; 0000 0223            br=0;
 ;PCODE: $0000068E VOL: 0
+; 0000 0225            do{              //Lectura de llave
 ;PCODE: $0000068F VOL: 0
-; 0000 0224            do{              //Lectura de llave
+; 0000 0226             printf("\n\rDa el nombre del archivo de la llave: ");
 ;PCODE: $00000690 VOL: 0
-; 0000 0225             printf("\n\rDa el nombre del archivo de la llave: ");
 ;PCODE: $00000691 VOL: 0
 ;PCODE: $00000692 VOL: 0
 ;PCODE: $00000693 VOL: 0
 ;PCODE: $00000694 VOL: 0
 ;PCODE: $00000695 VOL: 0
 ;PCODE: $00000696 VOL: 0
+; 0000 0227             scanf("%s",Cadena);
 ;PCODE: $00000697 VOL: 0
-; 0000 0226             scanf("%s",Cadena);
 ;PCODE: $00000698 VOL: 0
 ;PCODE: $00000699 VOL: 0
 ;PCODE: $0000069A VOL: 0
@@ -2378,11 +2354,11 @@
 ;PCODE: $0000069E VOL: 0
 ;PCODE: $0000069F VOL: 0
 ;PCODE: $000006A0 VOL: 0
+; 0000 0228             i=2;
 ;PCODE: $000006A1 VOL: 0
-; 0000 0227             i=2;
 ;PCODE: $000006A2 VOL: 0
+; 0000 0229             for (i=2;i<17;i++)
 ;PCODE: $000006A3 VOL: 0
-; 0000 0228             for (i=2;i<17;i++)
 ;PCODE: $000006A4 VOL: 0
 ;PCODE: $000006A5 VOL: 0
 ;PCODE: $000006A6 VOL: 0
@@ -2392,7 +2368,7 @@
 ;PCODE: $000006AA VOL: 0
 ;PCODE: $000006AB VOL: 0
 ;PCODE: $000006AC VOL: 0
-; 0000 0229               NombreArchivo[i]=Cadena[i-2];      //Copiar string con el que antecede con "0:"
+; 0000 022A               NombreArchivo[i]=Cadena[i-2];      //Copiar string con el que antecede con "0:"
 ;PCODE: $000006AD VOL: 0
 ;PCODE: $000006AE VOL: 0
 ;PCODE: $000006AF VOL: 0
@@ -2407,19 +2383,19 @@
 ;PCODE: $000006B8 VOL: 0
 ;PCODE: $000006B9 VOL: 0
 ;PCODE: $000006BA VOL: 0
-; 0000 022A res = f_open(&archivo1, NombreArchivo, 0x01);
 ;PCODE: $000006BB VOL: 0
+; 0000 022B res = f_open(&archivo1, NombreArchivo, 0x01);
 ;PCODE: $000006BC VOL: 0
 ;PCODE: $000006BD VOL: 0
 ;PCODE: $000006BE VOL: 0
 ;PCODE: $000006BF VOL: 0
 ;PCODE: $000006C0 VOL: 0
 ;PCODE: $000006C1 VOL: 0
-; 0000 022B             if (res==FR_OK){
 ;PCODE: $000006C2 VOL: 0
+; 0000 022C             if (res==FR_OK){
 ;PCODE: $000006C3 VOL: 0
-; 0000 022C                f_read(&archivo1, Llave, 16,&br);                 //Leer 16 bytes de la llave
 ;PCODE: $000006C4 VOL: 0
+; 0000 022D                f_read(&archivo1, Llave, 16,&br);             //Leer 16 bytes de la llave
 ;PCODE: $000006C5 VOL: 0
 ;PCODE: $000006C6 VOL: 0
 ;PCODE: $000006C7 VOL: 0
@@ -2432,56 +2408,53 @@
 ;PCODE: $000006CE VOL: 0
 ;PCODE: $000006CF VOL: 0
 ;PCODE: $000006D0 VOL: 0
-; 0000 022D            KeyExpansion(Llave);
 ;PCODE: $000006D1 VOL: 0
-;PCODE: $000006D2 VOL: 0
 ; 0000 022E                }
 ; 0000 022F             else
+;PCODE: $000006D2 VOL: 0
 ;PCODE: $000006D3 VOL: 0
+; 0000 0230                 printf("Error en el archivo de la llave\n\r");
 ;PCODE: $000006D4 VOL: 0
-; 0000 0230             {
-; 0000 0231                 printf("Error en el archivo de la llave\n\r");
 ;PCODE: $000006D5 VOL: 0
 ;PCODE: $000006D6 VOL: 0
 ;PCODE: $000006D7 VOL: 0
 ;PCODE: $000006D8 VOL: 0
 ;PCODE: $000006D9 VOL: 0
 ;PCODE: $000006DA VOL: 0
+; 0000 0231                 ImprimeError(res);
 ;PCODE: $000006DB VOL: 0
-; 0000 0232                 ImprimeError(res);
 ;PCODE: $000006DC VOL: 0
 ;PCODE: $000006DD VOL: 0
 ;PCODE: $000006DE VOL: 0
-; 0000 0233             }
+; 0000 0232            }while(br!=16);
 ;PCODE: $000006DF VOL: 0
-; 0000 0234            }while(br!=16);
 ;PCODE: $000006E0 VOL: 0
 ;PCODE: $000006E1 VOL: 0
 ;PCODE: $000006E2 VOL: 0
 ;PCODE: $000006E3 VOL: 0
 ;PCODE: $000006E4 VOL: 0
+; 0000 0233            f_close(&archivo1);
 ;PCODE: $000006E5 VOL: 0
-; 0000 0235            f_close(&archivo1);
 ;PCODE: $000006E6 VOL: 0
+; 0000 0234            //Hacer aquí la expansión de llave
+; 0000 0235            KeyExpansion(Llave);
 ;PCODE: $000006E7 VOL: 0
-; 0000 0236            //Hacer aquí la expansión de llave
-; 0000 0237            //KeyExpansion(Llave);
-; 0000 0238 
-; 0000 0239            error=1;
 ;PCODE: $000006E8 VOL: 0
+; 0000 0236 
+; 0000 0237            error=1;
 ;PCODE: $000006E9 VOL: 0
-; 0000 023A            do{              //Lectura de archivo y cifrado
 ;PCODE: $000006EA VOL: 0
-; 0000 023B             printf("Da el nombre del archivo a cifrar: ");
+; 0000 0238            do{              //Lectura de archivo y cifrado
 ;PCODE: $000006EB VOL: 0
+; 0000 0239             printf("Da el nombre del archivo a cifrar: ");
 ;PCODE: $000006EC VOL: 0
 ;PCODE: $000006ED VOL: 0
 ;PCODE: $000006EE VOL: 0
 ;PCODE: $000006EF VOL: 0
 ;PCODE: $000006F0 VOL: 0
 ;PCODE: $000006F1 VOL: 0
-; 0000 023C             scanf("%s",Cadena);
 ;PCODE: $000006F2 VOL: 0
+; 0000 023A             scanf("%s",Cadena);
 ;PCODE: $000006F3 VOL: 0
 ;PCODE: $000006F4 VOL: 0
 ;PCODE: $000006F5 VOL: 0
@@ -2491,11 +2464,11 @@
 ;PCODE: $000006F9 VOL: 0
 ;PCODE: $000006FA VOL: 0
 ;PCODE: $000006FB VOL: 0
-; 0000 023D             i=2;
 ;PCODE: $000006FC VOL: 0
+; 0000 023B             i=2;
 ;PCODE: $000006FD VOL: 0
-; 0000 023E             for (i=2;i<17;i++)
 ;PCODE: $000006FE VOL: 0
+; 0000 023C             for (i=2;i<17;i++)
 ;PCODE: $000006FF VOL: 0
 ;PCODE: $00000700 VOL: 0
 ;PCODE: $00000701 VOL: 0
@@ -2504,9 +2477,9 @@
 ;PCODE: $00000704 VOL: 0
 ;PCODE: $00000705 VOL: 0
 ;PCODE: $00000706 VOL: 0
-; 0000 023F               NombreArchivo[i]=Cadena[i-2];
 ;PCODE: $00000707 VOL: 0
 ;PCODE: $00000708 VOL: 0
+; 0000 023D               NombreArchivo[i]=Cadena[i-2];
 ;PCODE: $00000709 VOL: 0
 ;PCODE: $0000070A VOL: 0
 ;PCODE: $0000070B VOL: 0
@@ -2519,32 +2492,41 @@
 ;PCODE: $00000712 VOL: 0
 ;PCODE: $00000713 VOL: 0
 ;PCODE: $00000714 VOL: 0
-; 0000 0240 res = f_open(&archivo1, NombreArchivo, 0x01);
 ;PCODE: $00000715 VOL: 0
 ;PCODE: $00000716 VOL: 0
 ;PCODE: $00000717 VOL: 0
+; 0000 023E res = f_open(&archivo1, NombreArchivo, 0x01);
 ;PCODE: $00000718 VOL: 0
 ;PCODE: $00000719 VOL: 0
 ;PCODE: $0000071A VOL: 0
 ;PCODE: $0000071B VOL: 0
-; 0000 0241             if (res==FR_OK){
 ;PCODE: $0000071C VOL: 0
 ;PCODE: $0000071D VOL: 0
-; 0000 0242                printf("Archivo encontrado\n\r");
 ;PCODE: $0000071E VOL: 0
+; 0000 023F             if (res==FR_OK){
 ;PCODE: $0000071F VOL: 0
 ;PCODE: $00000720 VOL: 0
+; 0000 0240 
+; 0000 0241 //                EraseLCD();
+; 0000 0242 //                MoveCursor(0,0);
+; 0000 0243 //                StringLCD("Archivo de entrada");
+; 0000 0244 //                MoveCursor(0,1);
+; 0000 0245 //                StringLCDVar(Cadena);
+; 0000 0246 //                delay_ms(1000);
+; 0000 0247 //                EraseLCD();
+; 0000 0248 
+; 0000 0249                printf("Archivo encontrado\n\r");
 ;PCODE: $00000721 VOL: 0
 ;PCODE: $00000722 VOL: 0
 ;PCODE: $00000723 VOL: 0
 ;PCODE: $00000724 VOL: 0
-; 0000 0243                i=0;
 ;PCODE: $00000725 VOL: 0
 ;PCODE: $00000726 VOL: 0
-; 0000 0244                while(NombreArchivo[++i]!='.');  //Busca el punto
 ;PCODE: $00000727 VOL: 0
+; 0000 024A                i=0;
 ;PCODE: $00000728 VOL: 0
 ;PCODE: $00000729 VOL: 0
+; 0000 024B                while(NombreArchivo[++i]!='.');  //Busca el punto
 ;PCODE: $0000072A VOL: 0
 ;PCODE: $0000072B VOL: 0
 ;PCODE: $0000072C VOL: 0
@@ -2553,122 +2535,128 @@
 ;PCODE: $0000072F VOL: 0
 ;PCODE: $00000730 VOL: 0
 ;PCODE: $00000731 VOL: 0
-; 0000 0245                NombreArchivo[i+1]='A';
 ;PCODE: $00000732 VOL: 0
 ;PCODE: $00000733 VOL: 0
 ;PCODE: $00000734 VOL: 0
+; 0000 024C                NombreArchivo[i+1]='A';
 ;PCODE: $00000735 VOL: 0
 ;PCODE: $00000736 VOL: 0
 ;PCODE: $00000737 VOL: 0
-; 0000 0246                NombreArchivo[i+2]='E';
 ;PCODE: $00000738 VOL: 0
 ;PCODE: $00000739 VOL: 0
 ;PCODE: $0000073A VOL: 0
+; 0000 024D                NombreArchivo[i+2]='E';
 ;PCODE: $0000073B VOL: 0
 ;PCODE: $0000073C VOL: 0
 ;PCODE: $0000073D VOL: 0
-; 0000 0247                NombreArchivo[i+3]='S';
 ;PCODE: $0000073E VOL: 0
 ;PCODE: $0000073F VOL: 0
 ;PCODE: $00000740 VOL: 0
+; 0000 024E                NombreArchivo[i+3]='S';
 ;PCODE: $00000741 VOL: 0
 ;PCODE: $00000742 VOL: 0
 ;PCODE: $00000743 VOL: 0
-; 0000 0248                res = f_open(&archivo2, NombreArchivo, FA_READ | FA_WRITE | FA_CREATE_ALWAYS );
 ;PCODE: $00000744 VOL: 0
 ;PCODE: $00000745 VOL: 0
 ;PCODE: $00000746 VOL: 0
+; 0000 024F                res = f_open(&archivo2, NombreArchivo, FA_READ | FA_WRITE | FA_CREATE_ALWAYS );
 ;PCODE: $00000747 VOL: 0
 ;PCODE: $00000748 VOL: 0
 ;PCODE: $00000749 VOL: 0
 ;PCODE: $0000074A VOL: 0
-; 0000 0249                if (res==FR_OK)
 ;PCODE: $0000074B VOL: 0
 ;PCODE: $0000074C VOL: 0
-; 0000 024A                {
-; 0000 024B                     tiempo=mseg;
 ;PCODE: $0000074D VOL: 0
+; 0000 0250                if (res==FR_OK)
 ;PCODE: $0000074E VOL: 0
-; 0000 024C                     printf("Cifrando...");
 ;PCODE: $0000074F VOL: 0
+; 0000 0251                {
+; 0000 0252                     tiempo=mseg;
 ;PCODE: $00000750 VOL: 0
 ;PCODE: $00000751 VOL: 0
+; 0000 0253 
+; 0000 0254                     //Displayar informaci+on que se está cifrando
+; 0000 0255                     EraseLCD();
 ;PCODE: $00000752 VOL: 0
+; 0000 0256                     MoveCursor(0,0);
 ;PCODE: $00000753 VOL: 0
 ;PCODE: $00000754 VOL: 0
 ;PCODE: $00000755 VOL: 0
-; 0000 024D                     i=archivo1.fsize%16;        //Calcula el número de bytes del último bloque
 ;PCODE: $00000756 VOL: 0
+; 0000 0257                     StringLCD("Cifrando ");
 ;PCODE: $00000757 VOL: 0
 ;PCODE: $00000758 VOL: 0
 ;PCODE: $00000759 VOL: 0
-; 0000 024E                     NumBloques=archivo1.fsize/16;
+; 0000 0258                     MoveCursor(0,1);
 ;PCODE: $0000075A VOL: 0
 ;PCODE: $0000075B VOL: 0
 ;PCODE: $0000075C VOL: 0
 ;PCODE: $0000075D VOL: 0
+; 0000 0259                     StringLCDVar(Cadena);
 ;PCODE: $0000075E VOL: 0
 ;PCODE: $0000075F VOL: 0
+; 0000 025A                     delay_ms(2000);
 ;PCODE: $00000760 VOL: 0
 ;PCODE: $00000761 VOL: 0
-; 0000 024F                     if (i!=0)
+; 0000 025B 
+; 0000 025C                     i=archivo1.fsize%16;        //Calcula el nÃºmero de bytes del Ãºltimo bloque
 ;PCODE: $00000762 VOL: 0
 ;PCODE: $00000763 VOL: 0
-; 0000 0250                          NumBloques++;
 ;PCODE: $00000764 VOL: 0
 ;PCODE: $00000765 VOL: 0
+; 0000 025D                     NumBloques=archivo1.fsize/16;
 ;PCODE: $00000766 VOL: 0
 ;PCODE: $00000767 VOL: 0
-; 0000 0251                     Buffer[0]=i;
 ;PCODE: $00000768 VOL: 0
 ;PCODE: $00000769 VOL: 0
 ;PCODE: $0000076A VOL: 0
-; 0000 0252                     f_write(&archivo2, Buffer, 1,&br); //Escribe el número de bytes del último bloque
 ;PCODE: $0000076B VOL: 0
 ;PCODE: $0000076C VOL: 0
 ;PCODE: $0000076D VOL: 0
+; 0000 025E                     if (i!=0)
 ;PCODE: $0000076E VOL: 0
 ;PCODE: $0000076F VOL: 0
 ;PCODE: $00000770 VOL: 0
+; 0000 025F                          NumBloques++;
 ;PCODE: $00000771 VOL: 0
 ;PCODE: $00000772 VOL: 0
 ;PCODE: $00000773 VOL: 0
 ;PCODE: $00000774 VOL: 0
+; 0000 0260                     Buffer[0]=i;
 ;PCODE: $00000775 VOL: 0
 ;PCODE: $00000776 VOL: 0
 ;PCODE: $00000777 VOL: 0
-; 0000 0253                     j=0;
+; 0000 0261                     f_write(&archivo2, Buffer, 1,&br); //Escribe el número de bytes del último bloque
 ;PCODE: $00000778 VOL: 0
 ;PCODE: $00000779 VOL: 0
-; 0000 0254                     while(j!=NumBloques)
 ;PCODE: $0000077A VOL: 0
 ;PCODE: $0000077B VOL: 0
 ;PCODE: $0000077C VOL: 0
 ;PCODE: $0000077D VOL: 0
 ;PCODE: $0000077E VOL: 0
 ;PCODE: $0000077F VOL: 0
-; 0000 0255                     {
-; 0000 0256                         f_read(&archivo1, Buffer, 16,&br);   //LeeBloque
 ;PCODE: $00000780 VOL: 0
 ;PCODE: $00000781 VOL: 0
 ;PCODE: $00000782 VOL: 0
 ;PCODE: $00000783 VOL: 0
 ;PCODE: $00000784 VOL: 0
+; 0000 0262                     j=0;
 ;PCODE: $00000785 VOL: 0
 ;PCODE: $00000786 VOL: 0
+; 0000 0263                     avance = 0;
 ;PCODE: $00000787 VOL: 0
 ;PCODE: $00000788 VOL: 0
+; 0000 0264                     while(j!=NumBloques)
 ;PCODE: $00000789 VOL: 0
 ;PCODE: $0000078A VOL: 0
 ;PCODE: $0000078B VOL: 0
 ;PCODE: $0000078C VOL: 0
-; 0000 0257                         //aquí se cifraría usando la llave expandida y bloque de entrada
-; 0000 0258                         Cipher(Buffer,Llave);
 ;PCODE: $0000078D VOL: 0
+; 0000 0265                     {
+; 0000 0266                         f_read(&archivo1, Buffer, 16,&br);   //LeeBloque
 ;PCODE: $0000078E VOL: 0
 ;PCODE: $0000078F VOL: 0
 ;PCODE: $00000790 VOL: 0
-; 0000 0259                         f_write(&archivo2,Buffer, 16,&br);   //LeeBloque
 ;PCODE: $00000791 VOL: 0
 ;PCODE: $00000792 VOL: 0
 ;PCODE: $00000793 VOL: 0
@@ -2679,67 +2667,60 @@
 ;PCODE: $00000798 VOL: 0
 ;PCODE: $00000799 VOL: 0
 ;PCODE: $0000079A VOL: 0
+; 0000 0267                         //aquí se cifraría usando la llave expandida y bloque de entrada
+; 0000 0268                         Cipher(Buffer, Llave);
 ;PCODE: $0000079B VOL: 0
 ;PCODE: $0000079C VOL: 0
 ;PCODE: $0000079D VOL: 0
-; 0000 025A                         j++;
 ;PCODE: $0000079E VOL: 0
+; 0000 0269                         f_write(&archivo2,Buffer, 16,&br);   //LeeBloque
 ;PCODE: $0000079F VOL: 0
 ;PCODE: $000007A0 VOL: 0
-; 0000 025B                     }
 ;PCODE: $000007A1 VOL: 0
 ;PCODE: $000007A2 VOL: 0
-; 0000 025C                     f_close(&archivo2);
 ;PCODE: $000007A3 VOL: 0
 ;PCODE: $000007A4 VOL: 0
-; 0000 025D                     tiempo=mseg-tiempo;
 ;PCODE: $000007A5 VOL: 0
 ;PCODE: $000007A6 VOL: 0
 ;PCODE: $000007A7 VOL: 0
 ;PCODE: $000007A8 VOL: 0
-; 0000 025E                     printf("Archivo crifrado en %lu mseg (%lu bloques)\n\r\n\r",tiempo,NumBloques);
 ;PCODE: $000007A9 VOL: 0
 ;PCODE: $000007AA VOL: 0
 ;PCODE: $000007AB VOL: 0
+; 0000 026A                         j++;
 ;PCODE: $000007AC VOL: 0
 ;PCODE: $000007AD VOL: 0
 ;PCODE: $000007AE VOL: 0
 ;PCODE: $000007AF VOL: 0
+; 0000 026B                         avance++;
 ;PCODE: $000007B0 VOL: 0
 ;PCODE: $000007B1 VOL: 0
 ;PCODE: $000007B2 VOL: 0
+; 0000 026C                         if (avance == 100){
 ;PCODE: $000007B3 VOL: 0
-; 0000 025F 
-; 0000 0260                     error=0;
 ;PCODE: $000007B4 VOL: 0
 ;PCODE: $000007B5 VOL: 0
-; 0000 0261                }
-; 0000 0262                else
+; 0000 026D                             MoveCursor(0,0);
 ;PCODE: $000007B6 VOL: 0
 ;PCODE: $000007B7 VOL: 0
-; 0000 0263                {
-; 0000 0264                  printf("Error al generar archivo de salida %i");
 ;PCODE: $000007B8 VOL: 0
 ;PCODE: $000007B9 VOL: 0
+; 0000 026E                             StringLCD("Num Bloques:");
 ;PCODE: $000007BA VOL: 0
 ;PCODE: $000007BB VOL: 0
 ;PCODE: $000007BC VOL: 0
+; 0000 026F                             MoveCursor(0,1);
 ;PCODE: $000007BD VOL: 0
 ;PCODE: $000007BE VOL: 0
-; 0000 0265                  ImprimeError(res);
 ;PCODE: $000007BF VOL: 0
 ;PCODE: $000007C0 VOL: 0
+; 0000 0270                             sprintf(Cadena2," %lu/%lu",j,NumBloques);
 ;PCODE: $000007C1 VOL: 0
-; 0000 0266                  error=1;
 ;PCODE: $000007C2 VOL: 0
 ;PCODE: $000007C3 VOL: 0
-; 0000 0267                }
 ;PCODE: $000007C4 VOL: 0
-; 0000 0268             }
-; 0000 0269             else
 ;PCODE: $000007C5 VOL: 0
 ;PCODE: $000007C6 VOL: 0
-; 0000 026A                printf("Archivo no encontrado\n\r");
 ;PCODE: $000007C7 VOL: 0
 ;PCODE: $000007C8 VOL: 0
 ;PCODE: $000007C9 VOL: 0
@@ -2747,32 +2728,29 @@
 ;PCODE: $000007CB VOL: 0
 ;PCODE: $000007CC VOL: 0
 ;PCODE: $000007CD VOL: 0
-; 0000 026B            }while(error==1);
+; 0000 0271                             StringLCDVar(Cadena2);
 ;PCODE: $000007CE VOL: 0
 ;PCODE: $000007CF VOL: 0
+; 0000 0272                             avance=0;
 ;PCODE: $000007D0 VOL: 0
 ;PCODE: $000007D1 VOL: 0
+; 0000 0273                         }
+; 0000 0274                     }
 ;PCODE: $000007D2 VOL: 0
 ;PCODE: $000007D3 VOL: 0
 ;PCODE: $000007D4 VOL: 0
-; 0000 026C            f_close(&archivo1);
+; 0000 0275                     f_close(&archivo2);
 ;PCODE: $000007D5 VOL: 0
 ;PCODE: $000007D6 VOL: 0
-; 0000 026D 
-; 0000 026E         }
-; 0000 026F 
-; 0000 0270         if (opcion=='2')   //Desencriptar
+; 0000 0276                     tiempo=mseg-tiempo;
 ;PCODE: $000007D7 VOL: 0
 ;PCODE: $000007D8 VOL: 0
 ;PCODE: $000007D9 VOL: 0
 ;PCODE: $000007DA VOL: 0
-; 0000 0271         {
-; 0000 0272            br=0;
+; 0000 0277                     printf("Archivo crifrado en %lu mseg (%lu bloques)\n\r\n\r",tiempo,NumBloques);
 ;PCODE: $000007DB VOL: 0
 ;PCODE: $000007DC VOL: 0
-; 0000 0273            do{              //Lectura de llave
 ;PCODE: $000007DD VOL: 0
-; 0000 0274             printf("\n\rDa el nombre del archivo de la llave: ");
 ;PCODE: $000007DE VOL: 0
 ;PCODE: $000007DF VOL: 0
 ;PCODE: $000007E0 VOL: 0
@@ -2780,37 +2758,46 @@
 ;PCODE: $000007E2 VOL: 0
 ;PCODE: $000007E3 VOL: 0
 ;PCODE: $000007E4 VOL: 0
-; 0000 0275             scanf("%s",Cadena);
 ;PCODE: $000007E5 VOL: 0
+; 0000 0278 
+; 0000 0279                     error=0;
 ;PCODE: $000007E6 VOL: 0
 ;PCODE: $000007E7 VOL: 0
+; 0000 027A                }
+; 0000 027B                else
 ;PCODE: $000007E8 VOL: 0
 ;PCODE: $000007E9 VOL: 0
+; 0000 027C                {
+; 0000 027D                  printf("Error al generar archivo de salida %i\n");
 ;PCODE: $000007EA VOL: 0
 ;PCODE: $000007EB VOL: 0
 ;PCODE: $000007EC VOL: 0
 ;PCODE: $000007ED VOL: 0
 ;PCODE: $000007EE VOL: 0
-; 0000 0276             i=2;
 ;PCODE: $000007EF VOL: 0
 ;PCODE: $000007F0 VOL: 0
-; 0000 0277             for (i=2;i<17;i++)
+; 0000 027E                  ImprimeError(res);
 ;PCODE: $000007F1 VOL: 0
 ;PCODE: $000007F2 VOL: 0
 ;PCODE: $000007F3 VOL: 0
+; 0000 027F                  error=1;
 ;PCODE: $000007F4 VOL: 0
 ;PCODE: $000007F5 VOL: 0
+; 0000 0280                }
 ;PCODE: $000007F6 VOL: 0
+; 0000 0281             }
+; 0000 0282             else
 ;PCODE: $000007F7 VOL: 0
 ;PCODE: $000007F8 VOL: 0
+; 0000 0283                printf("Archivo no encontrado\n\r");
 ;PCODE: $000007F9 VOL: 0
-; 0000 0278               NombreArchivo[i]=Cadena[i-2];
 ;PCODE: $000007FA VOL: 0
 ;PCODE: $000007FB VOL: 0
 ;PCODE: $000007FC VOL: 0
 ;PCODE: $000007FD VOL: 0
 ;PCODE: $000007FE VOL: 0
 ;PCODE: $000007FF VOL: 0
+; 0000 0284            }while(error==1);
 ;PCODE: $00000800 VOL: 0
 ;PCODE: $00000801 VOL: 0
 ;PCODE: $00000802 VOL: 0
@@ -2818,25 +2805,32 @@
 ;PCODE: $00000804 VOL: 0
 ;PCODE: $00000805 VOL: 0
 ;PCODE: $00000806 VOL: 0
+; 0000 0285            f_close(&archivo1);
 ;PCODE: $00000807 VOL: 0
-; 0000 0279 res = f_open(&archivo1, NombreArchivo, 0x01);
 ;PCODE: $00000808 VOL: 0
+; 0000 0286 
+; 0000 0287         }
+; 0000 0288 
+; 0000 0289         if (opcion=='2')   //Desencriptar
 ;PCODE: $00000809 VOL: 0
 ;PCODE: $0000080A VOL: 0
 ;PCODE: $0000080B VOL: 0
 ;PCODE: $0000080C VOL: 0
+; 0000 028A         {
+; 0000 028B            br=0;
 ;PCODE: $0000080D VOL: 0
 ;PCODE: $0000080E VOL: 0
-; 0000 027A             if (res==FR_OK){
+; 0000 028C            do{              //Lectura de llave
 ;PCODE: $0000080F VOL: 0
+; 0000 028D             printf("\n\rDa el nombre del archivo de la llave: ");
 ;PCODE: $00000810 VOL: 0
-; 0000 027B                f_read(&archivo1, Llave, 16,&br);
 ;PCODE: $00000811 VOL: 0
 ;PCODE: $00000812 VOL: 0
 ;PCODE: $00000813 VOL: 0
 ;PCODE: $00000814 VOL: 0
 ;PCODE: $00000815 VOL: 0
 ;PCODE: $00000816 VOL: 0
+; 0000 028E             scanf("%s",Cadena);
 ;PCODE: $00000817 VOL: 0
 ;PCODE: $00000818 VOL: 0
 ;PCODE: $00000819 VOL: 0
@@ -2844,65 +2838,57 @@
 ;PCODE: $0000081B VOL: 0
 ;PCODE: $0000081C VOL: 0
 ;PCODE: $0000081D VOL: 0
-; 0000 027C                }
-; 0000 027D             else
 ;PCODE: $0000081E VOL: 0
 ;PCODE: $0000081F VOL: 0
-; 0000 027E                 printf("Error en el archivo de la llave %i\n\r");
 ;PCODE: $00000820 VOL: 0
+; 0000 028F             i=2;
 ;PCODE: $00000821 VOL: 0
 ;PCODE: $00000822 VOL: 0
+; 0000 0290             for (i=2;i<17;i++)
 ;PCODE: $00000823 VOL: 0
 ;PCODE: $00000824 VOL: 0
 ;PCODE: $00000825 VOL: 0
 ;PCODE: $00000826 VOL: 0
-; 0000 027F                 ImprimeError(res);
 ;PCODE: $00000827 VOL: 0
 ;PCODE: $00000828 VOL: 0
 ;PCODE: $00000829 VOL: 0
 ;PCODE: $0000082A VOL: 0
-; 0000 0280            }while(br!=16);
 ;PCODE: $0000082B VOL: 0
 ;PCODE: $0000082C VOL: 0
+; 0000 0291               NombreArchivo[i]=Cadena[i-2];
 ;PCODE: $0000082D VOL: 0
 ;PCODE: $0000082E VOL: 0
 ;PCODE: $0000082F VOL: 0
 ;PCODE: $00000830 VOL: 0
-; 0000 0281            f_close(&archivo1);
 ;PCODE: $00000831 VOL: 0
 ;PCODE: $00000832 VOL: 0
-; 0000 0282            //Hacer aquí la expansión de llave
-; 0000 0283            KeyExpansion(Llave);
 ;PCODE: $00000833 VOL: 0
 ;PCODE: $00000834 VOL: 0
-; 0000 0284            error=1;
 ;PCODE: $00000835 VOL: 0
 ;PCODE: $00000836 VOL: 0
-; 0000 0285            do{              //Lectura de archivo y cifrado
 ;PCODE: $00000837 VOL: 0
-; 0000 0286             printf("Da el nombre del archivo a descifrar: ");
 ;PCODE: $00000838 VOL: 0
 ;PCODE: $00000839 VOL: 0
 ;PCODE: $0000083A VOL: 0
 ;PCODE: $0000083B VOL: 0
+; 0000 0292 res = f_open(&archivo1, NombreArchivo, 0x01);
 ;PCODE: $0000083C VOL: 0
 ;PCODE: $0000083D VOL: 0
 ;PCODE: $0000083E VOL: 0
-; 0000 0287             scanf("%s",Cadena);
 ;PCODE: $0000083F VOL: 0
 ;PCODE: $00000840 VOL: 0
 ;PCODE: $00000841 VOL: 0
 ;PCODE: $00000842 VOL: 0
+; 0000 0293             if (res==FR_OK){
 ;PCODE: $00000843 VOL: 0
 ;PCODE: $00000844 VOL: 0
+; 0000 0294                f_read(&archivo1, Llave, 16,&br);
 ;PCODE: $00000845 VOL: 0
 ;PCODE: $00000846 VOL: 0
 ;PCODE: $00000847 VOL: 0
 ;PCODE: $00000848 VOL: 0
-; 0000 0288             i=2;
 ;PCODE: $00000849 VOL: 0
 ;PCODE: $0000084A VOL: 0
-; 0000 0289             for (i=2;i<17;i++)
 ;PCODE: $0000084B VOL: 0
 ;PCODE: $0000084C VOL: 0
 ;PCODE: $0000084D VOL: 0
@@ -2910,9 +2896,11 @@
 ;PCODE: $0000084F VOL: 0
 ;PCODE: $00000850 VOL: 0
 ;PCODE: $00000851 VOL: 0
+; 0000 0295                }
+; 0000 0296             else
 ;PCODE: $00000852 VOL: 0
 ;PCODE: $00000853 VOL: 0
-; 0000 028A               NombreArchivo[i]=Cadena[i-2];
+; 0000 0297                 printf("Error en el archivo de la llave %i\n\r",res);
 ;PCODE: $00000854 VOL: 0
 ;PCODE: $00000855 VOL: 0
 ;PCODE: $00000856 VOL: 0
@@ -2923,30 +2911,33 @@
 ;PCODE: $0000085B VOL: 0
 ;PCODE: $0000085C VOL: 0
 ;PCODE: $0000085D VOL: 0
+; 0000 0298            }while(br!=16);
 ;PCODE: $0000085E VOL: 0
 ;PCODE: $0000085F VOL: 0
 ;PCODE: $00000860 VOL: 0
 ;PCODE: $00000861 VOL: 0
-; 0000 028B res = f_open(&archivo1, NombreArchivo, 0x01);
 ;PCODE: $00000862 VOL: 0
 ;PCODE: $00000863 VOL: 0
 ;PCODE: $00000864 VOL: 0
+; 0000 0299            f_close(&archivo1);
 ;PCODE: $00000865 VOL: 0
 ;PCODE: $00000866 VOL: 0
+; 0000 029A 
+; 0000 029B            error=1;
 ;PCODE: $00000867 VOL: 0
 ;PCODE: $00000868 VOL: 0
-; 0000 028C             if (res==FR_OK){
+; 0000 029C            do{              //Lectura de archivo y cifrado
 ;PCODE: $00000869 VOL: 0
+; 0000 029D             printf("Da el nombre del archivo a descifrar: ");
 ;PCODE: $0000086A VOL: 0
-; 0000 028D                printf("Archivo encontrado\n\r");
 ;PCODE: $0000086B VOL: 0
 ;PCODE: $0000086C VOL: 0
 ;PCODE: $0000086D VOL: 0
 ;PCODE: $0000086E VOL: 0
 ;PCODE: $0000086F VOL: 0
 ;PCODE: $00000870 VOL: 0
+; 0000 029E             scanf("%s",Cadena);
 ;PCODE: $00000871 VOL: 0
-; 0000 028E                printf("Da el nombre del archivo de salida: ");
 ;PCODE: $00000872 VOL: 0
 ;PCODE: $00000873 VOL: 0
 ;PCODE: $00000874 VOL: 0
@@ -2954,23 +2945,23 @@
 ;PCODE: $00000876 VOL: 0
 ;PCODE: $00000877 VOL: 0
 ;PCODE: $00000878 VOL: 0
-; 0000 028F                scanf("%s",Cadena);
 ;PCODE: $00000879 VOL: 0
 ;PCODE: $0000087A VOL: 0
+; 0000 029F             i=2;
 ;PCODE: $0000087B VOL: 0
 ;PCODE: $0000087C VOL: 0
+; 0000 02A0             for (i=2;i<17;i++)
 ;PCODE: $0000087D VOL: 0
 ;PCODE: $0000087E VOL: 0
 ;PCODE: $0000087F VOL: 0
 ;PCODE: $00000880 VOL: 0
 ;PCODE: $00000881 VOL: 0
 ;PCODE: $00000882 VOL: 0
-; 0000 0290                i=2;
 ;PCODE: $00000883 VOL: 0
 ;PCODE: $00000884 VOL: 0
-; 0000 0291                for (i=2;i<17;i++)
 ;PCODE: $00000885 VOL: 0
 ;PCODE: $00000886 VOL: 0
+; 0000 02A1               NombreArchivo[i]=Cadena[i-2];
 ;PCODE: $00000887 VOL: 0
 ;PCODE: $00000888 VOL: 0
 ;PCODE: $00000889 VOL: 0
@@ -2978,7 +2969,6 @@
 ;PCODE: $0000088B VOL: 0
 ;PCODE: $0000088C VOL: 0
 ;PCODE: $0000088D VOL: 0
-; 0000 0292                  NombreArchivo[i]=Cadena[i-2];
 ;PCODE: $0000088E VOL: 0
 ;PCODE: $0000088F VOL: 0
 ;PCODE: $00000890 VOL: 0
@@ -2987,36 +2977,44 @@
 ;PCODE: $00000893 VOL: 0
 ;PCODE: $00000894 VOL: 0
 ;PCODE: $00000895 VOL: 0
+; 0000 02A2 res = f_open(&archivo1, NombreArchivo, 0x01);
 ;PCODE: $00000896 VOL: 0
 ;PCODE: $00000897 VOL: 0
 ;PCODE: $00000898 VOL: 0
 ;PCODE: $00000899 VOL: 0
 ;PCODE: $0000089A VOL: 0
 ;PCODE: $0000089B VOL: 0
-; 0000 0293 res = f_open(&archivo2, NombreArchivo, 0x01 | 0x02 | 0x08 );
 ;PCODE: $0000089C VOL: 0
+; 0000 02A3             if (res==FR_OK){
 ;PCODE: $0000089D VOL: 0
 ;PCODE: $0000089E VOL: 0
+; 0000 02A4 
+; 0000 02A5 //                EraseLCD();
+; 0000 02A6 //                MoveCursor(0,0);
+; 0000 02A7 //                StringLCD("Archivo a desencriptar");
+; 0000 02A8 //                MoveCursor(0,1);
+; 0000 02A9 //                StringLCDVar(Cadena);
+; 0000 02AA //                delay_ms(2500);
+; 0000 02AB //                EraseLCD();
+; 0000 02AC 
+; 0000 02AD                printf("Archivo encontrado\n\r");
 ;PCODE: $0000089F VOL: 0
 ;PCODE: $000008A0 VOL: 0
 ;PCODE: $000008A1 VOL: 0
 ;PCODE: $000008A2 VOL: 0
-; 0000 0294                if (res==FR_OK)
 ;PCODE: $000008A3 VOL: 0
 ;PCODE: $000008A4 VOL: 0
-; 0000 0295                {
-; 0000 0296                     tiempo=mseg;
 ;PCODE: $000008A5 VOL: 0
+; 0000 02AE                printf("Da el nombre del archivo de salida: ");
 ;PCODE: $000008A6 VOL: 0
-; 0000 0297                     printf("Descifrando...");
 ;PCODE: $000008A7 VOL: 0
 ;PCODE: $000008A8 VOL: 0
 ;PCODE: $000008A9 VOL: 0
 ;PCODE: $000008AA VOL: 0
 ;PCODE: $000008AB VOL: 0
 ;PCODE: $000008AC VOL: 0
+; 0000 02AF                scanf("%s",Cadena);
 ;PCODE: $000008AD VOL: 0
-; 0000 0298                     f_read(&archivo1, Buffer, 1,&br);
 ;PCODE: $000008AE VOL: 0
 ;PCODE: $000008AF VOL: 0
 ;PCODE: $000008B0 VOL: 0
@@ -3026,23 +3024,21 @@
 ;PCODE: $000008B4 VOL: 0
 ;PCODE: $000008B5 VOL: 0
 ;PCODE: $000008B6 VOL: 0
+; 0000 02B0                i=2;
 ;PCODE: $000008B7 VOL: 0
 ;PCODE: $000008B8 VOL: 0
+; 0000 02B1                for (i=2;i<17;i++)
 ;PCODE: $000008B9 VOL: 0
 ;PCODE: $000008BA VOL: 0
-; 0000 0299                     i=Buffer[0];                        //No de bytes del último bloque
 ;PCODE: $000008BB VOL: 0
 ;PCODE: $000008BC VOL: 0
-; 0000 029A                     if (i==0){
 ;PCODE: $000008BD VOL: 0
 ;PCODE: $000008BE VOL: 0
-; 0000 029B                         i=16;
 ;PCODE: $000008BF VOL: 0
 ;PCODE: $000008C0 VOL: 0
-; 0000 029C                     }
-; 0000 029D                     NumBloques=archivo1.fsize/16;
 ;PCODE: $000008C1 VOL: 0
 ;PCODE: $000008C2 VOL: 0
+; 0000 02B2                  NombreArchivo[i]=Cadena[i-2];
 ;PCODE: $000008C3 VOL: 0
 ;PCODE: $000008C4 VOL: 0
 ;PCODE: $000008C5 VOL: 0
@@ -3050,40 +3046,38 @@
 ;PCODE: $000008C7 VOL: 0
 ;PCODE: $000008C8 VOL: 0
 ;PCODE: $000008C9 VOL: 0
-; 0000 029E                     j=0;
 ;PCODE: $000008CA VOL: 0
 ;PCODE: $000008CB VOL: 0
-; 0000 029F                     if (NumBloques>1)
 ;PCODE: $000008CC VOL: 0
 ;PCODE: $000008CD VOL: 0
 ;PCODE: $000008CE VOL: 0
-; 0000 02A0                     {
-; 0000 02A1                         while(j!=(NumBloques-1))
 ;PCODE: $000008CF VOL: 0
 ;PCODE: $000008D0 VOL: 0
 ;PCODE: $000008D1 VOL: 0
+; 0000 02B3 res = f_open(&archivo2, NombreArchivo, 0x01 | 0x02 | 0x08 );
 ;PCODE: $000008D2 VOL: 0
 ;PCODE: $000008D3 VOL: 0
 ;PCODE: $000008D4 VOL: 0
 ;PCODE: $000008D5 VOL: 0
-; 0000 02A2                         {
-; 0000 02A3                             f_read(&archivo1, Buffer, 16,&br);   //LeeBloque
 ;PCODE: $000008D6 VOL: 0
 ;PCODE: $000008D7 VOL: 0
 ;PCODE: $000008D8 VOL: 0
+; 0000 02B4                if (res==FR_OK)
 ;PCODE: $000008D9 VOL: 0
 ;PCODE: $000008DA VOL: 0
+; 0000 02B5                {
+; 0000 02B6                     tiempo=mseg;
 ;PCODE: $000008DB VOL: 0
 ;PCODE: $000008DC VOL: 0
+; 0000 02B7                     printf("Descifrando...");
 ;PCODE: $000008DD VOL: 0
 ;PCODE: $000008DE VOL: 0
 ;PCODE: $000008DF VOL: 0
 ;PCODE: $000008E0 VOL: 0
 ;PCODE: $000008E1 VOL: 0
 ;PCODE: $000008E2 VOL: 0
-; 0000 02A4                             //aquí se descifraría usando la llave expandida y bloque de entrada
-; 0000 02A5                             f_write(&archivo2,Buffer, 16,&br);   //LeeBloque
 ;PCODE: $000008E3 VOL: 0
+; 0000 02B8                     f_read(&archivo1, Buffer, 1,&br);
 ;PCODE: $000008E4 VOL: 0
 ;PCODE: $000008E5 VOL: 0
 ;PCODE: $000008E6 VOL: 0
@@ -3096,18 +3090,18 @@
 ;PCODE: $000008ED VOL: 0
 ;PCODE: $000008EE VOL: 0
 ;PCODE: $000008EF VOL: 0
-; 0000 02A6                             j++;
 ;PCODE: $000008F0 VOL: 0
+; 0000 02B9                     i=Buffer[0];                        //No de bytes del Ãºltimo bloque
 ;PCODE: $000008F1 VOL: 0
 ;PCODE: $000008F2 VOL: 0
-; 0000 02A7                         }
+; 0000 02BA                     if (i==0)
 ;PCODE: $000008F3 VOL: 0
 ;PCODE: $000008F4 VOL: 0
-; 0000 02A8                     }
-; 0000 02A9                      f_read(&archivo1, Buffer, 16,&br);   //LeeBloque
 ;PCODE: $000008F5 VOL: 0
+; 0000 02BB                       i=16;
 ;PCODE: $000008F6 VOL: 0
 ;PCODE: $000008F7 VOL: 0
+; 0000 02BC                     NumBloques=archivo1.fsize/16;
 ;PCODE: $000008F8 VOL: 0
 ;PCODE: $000008F9 VOL: 0
 ;PCODE: $000008FA VOL: 0
@@ -3117,128 +3111,258 @@
 ;PCODE: $000008FE VOL: 0
 ;PCODE: $000008FF VOL: 0
 ;PCODE: $00000900 VOL: 0
+; 0000 02BD                     j=0;
 ;PCODE: $00000901 VOL: 0
 ;PCODE: $00000902 VOL: 0
-; 0000 02AA                       //aquí se descifraría el último bloque
-; 0000 02AB 
-; 0000 02AC                      f_write(&archivo2,Buffer, i,&br);   //LeeBloque
+; 0000 02BE                     avance=0;
 ;PCODE: $00000903 VOL: 0
 ;PCODE: $00000904 VOL: 0
+; 0000 02BF                     if (NumBloques>1)
 ;PCODE: $00000905 VOL: 0
 ;PCODE: $00000906 VOL: 0
 ;PCODE: $00000907 VOL: 0
+; 0000 02C0                     {
+; 0000 02C1                         while(j!=(NumBloques-1))
 ;PCODE: $00000908 VOL: 0
 ;PCODE: $00000909 VOL: 0
 ;PCODE: $0000090A VOL: 0
 ;PCODE: $0000090B VOL: 0
 ;PCODE: $0000090C VOL: 0
 ;PCODE: $0000090D VOL: 0
+; 0000 02C2                         {
+; 0000 02C3                             f_read(&archivo1, Buffer, 16,&br);   //LeeBloque
 ;PCODE: $0000090E VOL: 0
 ;PCODE: $0000090F VOL: 0
 ;PCODE: $00000910 VOL: 0
-; 0000 02AD 
-; 0000 02AE                     f_close(&archivo2);
 ;PCODE: $00000911 VOL: 0
 ;PCODE: $00000912 VOL: 0
-; 0000 02AF                     tiempo=mseg-tiempo;
 ;PCODE: $00000913 VOL: 0
 ;PCODE: $00000914 VOL: 0
 ;PCODE: $00000915 VOL: 0
 ;PCODE: $00000916 VOL: 0
-; 0000 02B0                     printf("Archivo descrifrado en %lu mseg (%lu bloques)\n\r\n\r",tiempo,NumBloques);
 ;PCODE: $00000917 VOL: 0
 ;PCODE: $00000918 VOL: 0
 ;PCODE: $00000919 VOL: 0
 ;PCODE: $0000091A VOL: 0
+; 0000 02C4                             //aquí se descifraría usando la llave expandida y bloque de entrada
+; 0000 02C5                             Decipher(Buffer, Llave);
 ;PCODE: $0000091B VOL: 0
 ;PCODE: $0000091C VOL: 0
 ;PCODE: $0000091D VOL: 0
 ;PCODE: $0000091E VOL: 0
+; 0000 02C6 
+; 0000 02C7                             f_write(&archivo2,Buffer, 16,&br);   //LeeBloque
 ;PCODE: $0000091F VOL: 0
 ;PCODE: $00000920 VOL: 0
 ;PCODE: $00000921 VOL: 0
-; 0000 02B1                     error=0;
 ;PCODE: $00000922 VOL: 0
 ;PCODE: $00000923 VOL: 0
-; 0000 02B2                }
-; 0000 02B3                else
 ;PCODE: $00000924 VOL: 0
 ;PCODE: $00000925 VOL: 0
-; 0000 02B4                {
-; 0000 02B5                  printf("Error al generar archivo de salida %i");
 ;PCODE: $00000926 VOL: 0
 ;PCODE: $00000927 VOL: 0
 ;PCODE: $00000928 VOL: 0
 ;PCODE: $00000929 VOL: 0
 ;PCODE: $0000092A VOL: 0
 ;PCODE: $0000092B VOL: 0
+; 0000 02C8                             j++;
 ;PCODE: $0000092C VOL: 0
-; 0000 02B6                  ImprimeError(res);
 ;PCODE: $0000092D VOL: 0
 ;PCODE: $0000092E VOL: 0
 ;PCODE: $0000092F VOL: 0
-; 0000 02B7                  error=1;
+; 0000 02C9                             avance++;
 ;PCODE: $00000930 VOL: 0
 ;PCODE: $00000931 VOL: 0
-; 0000 02B8                }
 ;PCODE: $00000932 VOL: 0
-; 0000 02B9             }
-; 0000 02BA             else
+; 0000 02CA                             if (avance == 100){
 ;PCODE: $00000933 VOL: 0
 ;PCODE: $00000934 VOL: 0
-; 0000 02BB                printf("Archivo no encontrado\n\r");
 ;PCODE: $00000935 VOL: 0
+; 0000 02CB                                 MoveCursor(0,0);
 ;PCODE: $00000936 VOL: 0
 ;PCODE: $00000937 VOL: 0
 ;PCODE: $00000938 VOL: 0
 ;PCODE: $00000939 VOL: 0
+; 0000 02CC                                 StringLCD("Num Bloques:");
 ;PCODE: $0000093A VOL: 0
 ;PCODE: $0000093B VOL: 0
-; 0000 02BC            }while(error==1);
 ;PCODE: $0000093C VOL: 0
+; 0000 02CD                                 MoveCursor(0,1);
 ;PCODE: $0000093D VOL: 0
 ;PCODE: $0000093E VOL: 0
 ;PCODE: $0000093F VOL: 0
 ;PCODE: $00000940 VOL: 0
+; 0000 02CE                                 sprintf(Cadena2," %lu / %lu", j,NumBloques);
 ;PCODE: $00000941 VOL: 0
 ;PCODE: $00000942 VOL: 0
-; 0000 02BD            f_close(&archivo1);
 ;PCODE: $00000943 VOL: 0
 ;PCODE: $00000944 VOL: 0
-; 0000 02BE 
-; 0000 02BF         }
-; 0000 02C0 
-; 0000 02C1 
-; 0000 02C2     }
 ;PCODE: $00000945 VOL: 0
 ;PCODE: $00000946 VOL: 0
 ;PCODE: $00000947 VOL: 0
-; 0000 02C3     }
-; 0000 02C4     else{
 ;PCODE: $00000948 VOL: 0
 ;PCODE: $00000949 VOL: 0
-; 0000 02C5          StringLCD("Drive NO Detectado");
 ;PCODE: $0000094A VOL: 0
 ;PCODE: $0000094B VOL: 0
 ;PCODE: $0000094C VOL: 0
-; 0000 02C6          while(1);
 ;PCODE: $0000094D VOL: 0
+; 0000 02CF                                 StringLCDVar(Cadena2);
 ;PCODE: $0000094E VOL: 0
 ;PCODE: $0000094F VOL: 0
-; 0000 02C7     }
+; 0000 02D0                                 avance=0;
 ;PCODE: $00000950 VOL: 0
-; 0000 02C8     f_mount(0,0); //Cerrar drive de SD
 ;PCODE: $00000951 VOL: 0
+; 0000 02D1                             }
+; 0000 02D2                         }
 ;PCODE: $00000952 VOL: 0
 ;PCODE: $00000953 VOL: 0
 ;PCODE: $00000954 VOL: 0
+; 0000 02D3                     }
+; 0000 02D4                      f_read(&archivo1, Buffer, 16,&br);   //LeeBloque
 ;PCODE: $00000955 VOL: 0
-; 0000 02C9     while(1);
 ;PCODE: $00000956 VOL: 0
 ;PCODE: $00000957 VOL: 0
 ;PCODE: $00000958 VOL: 0
-; 0000 02CA }
 ;PCODE: $00000959 VOL: 0
 ;PCODE: $0000095A VOL: 0
 ;PCODE: $0000095B VOL: 0
 ;PCODE: $0000095C VOL: 0
+;PCODE: $0000095D VOL: 0
+;PCODE: $0000095E VOL: 0
+;PCODE: $0000095F VOL: 0
+;PCODE: $00000960 VOL: 0
+;PCODE: $00000961 VOL: 0
+;PCODE: $00000962 VOL: 0
+; 0000 02D5                      //aquí se descifraría el último bloque
+; 0000 02D6                      Decipher(Buffer, Llave);
+;PCODE: $00000963 VOL: 0
+;PCODE: $00000964 VOL: 0
+;PCODE: $00000965 VOL: 0
+;PCODE: $00000966 VOL: 0
+; 0000 02D7                      f_write(&archivo2,Buffer, var,&br);   //LeeBloque
+;PCODE: $00000967 VOL: 0
+;PCODE: $00000968 VOL: 0
+;PCODE: $00000969 VOL: 0
+;PCODE: $0000096A VOL: 0
+;PCODE: $0000096B VOL: 0
+;PCODE: $0000096C VOL: 0
+;PCODE: $0000096D VOL: 0
+;PCODE: $0000096E VOL: 0
+;PCODE: $0000096F VOL: 0
+;PCODE: $00000970 VOL: 0
+;PCODE: $00000971 VOL: 0
+;PCODE: $00000972 VOL: 0
+;PCODE: $00000973 VOL: 0
+;PCODE: $00000974 VOL: 0
+; 0000 02D8 
+; 0000 02D9                     f_close(&archivo2);
+;PCODE: $00000975 VOL: 0
+;PCODE: $00000976 VOL: 0
+; 0000 02DA                     tiempo=mseg-tiempo;
+;PCODE: $00000977 VOL: 0
+;PCODE: $00000978 VOL: 0
+;PCODE: $00000979 VOL: 0
+;PCODE: $0000097A VOL: 0
+; 0000 02DB                     printf("Archivo descrifrado en %lu mseg (%lu bloques)\n\r\n\r",tiempo,NumBloques);
+;PCODE: $0000097B VOL: 0
+;PCODE: $0000097C VOL: 0
+;PCODE: $0000097D VOL: 0
+;PCODE: $0000097E VOL: 0
+;PCODE: $0000097F VOL: 0
+;PCODE: $00000980 VOL: 0
+;PCODE: $00000981 VOL: 0
+;PCODE: $00000982 VOL: 0
+;PCODE: $00000983 VOL: 0
+;PCODE: $00000984 VOL: 0
+;PCODE: $00000985 VOL: 0
+; 0000 02DC                     error=0;
+;PCODE: $00000986 VOL: 0
+;PCODE: $00000987 VOL: 0
+; 0000 02DD                }
+; 0000 02DE                else
+;PCODE: $00000988 VOL: 0
+;PCODE: $00000989 VOL: 0
+; 0000 02DF                {
+; 0000 02E0                  printf("Error al generar archivo de salida %i",res);
+;PCODE: $0000098A VOL: 0
+;PCODE: $0000098B VOL: 0
+;PCODE: $0000098C VOL: 0
+;PCODE: $0000098D VOL: 0
+;PCODE: $0000098E VOL: 0
+;PCODE: $0000098F VOL: 0
+;PCODE: $00000990 VOL: 0
+;PCODE: $00000991 VOL: 0
+;PCODE: $00000992 VOL: 0
+;PCODE: $00000993 VOL: 0
+; 0000 02E1                  ImprimeError(res);
+;PCODE: $00000994 VOL: 0
+;PCODE: $00000995 VOL: 0
+;PCODE: $00000996 VOL: 0
+; 0000 02E2                  error=1;
+;PCODE: $00000997 VOL: 0
+;PCODE: $00000998 VOL: 0
+; 0000 02E3                }
+;PCODE: $00000999 VOL: 0
+; 0000 02E4             }
+; 0000 02E5             else
+;PCODE: $0000099A VOL: 0
+;PCODE: $0000099B VOL: 0
+; 0000 02E6                printf("Archivo no encontrado\n\r");
+;PCODE: $0000099C VOL: 0
+;PCODE: $0000099D VOL: 0
+;PCODE: $0000099E VOL: 0
+;PCODE: $0000099F VOL: 0
+;PCODE: $000009A0 VOL: 0
+;PCODE: $000009A1 VOL: 0
+;PCODE: $000009A2 VOL: 0
+; 0000 02E7            }while(error==1);
+;PCODE: $000009A3 VOL: 0
+;PCODE: $000009A4 VOL: 0
+;PCODE: $000009A5 VOL: 0
+;PCODE: $000009A6 VOL: 0
+;PCODE: $000009A7 VOL: 0
+;PCODE: $000009A8 VOL: 0
+;PCODE: $000009A9 VOL: 0
+; 0000 02E8            f_close(&archivo1);
+;PCODE: $000009AA VOL: 0
+;PCODE: $000009AB VOL: 0
+; 0000 02E9 
+; 0000 02EA         }
+; 0000 02EB 
+; 0000 02EC 
+; 0000 02ED //          EraseLCD();
+; 0000 02EE //        MoveCursor(0,0);
+; 0000 02EF //        StringLCD("Completado");
+; 0000 02F0     }
+;PCODE: $000009AC VOL: 0
+;PCODE: $000009AD VOL: 0
+;PCODE: $000009AE VOL: 0
+; 0000 02F1     }
+; 0000 02F2     else{
+;PCODE: $000009AF VOL: 0
+;PCODE: $000009B0 VOL: 0
+; 0000 02F3          StringLCD("Drive NO Detectado");
+;PCODE: $000009B1 VOL: 0
+;PCODE: $000009B2 VOL: 0
+;PCODE: $000009B3 VOL: 0
+; 0000 02F4          while(1);
+;PCODE: $000009B4 VOL: 0
+;PCODE: $000009B5 VOL: 0
+;PCODE: $000009B6 VOL: 0
+; 0000 02F5     }
+;PCODE: $000009B7 VOL: 0
+; 0000 02F6     f_mount(0,0); //Cerrar drive de SD
+;PCODE: $000009B8 VOL: 0
+;PCODE: $000009B9 VOL: 0
+;PCODE: $000009BA VOL: 0
+;PCODE: $000009BB VOL: 0
+;PCODE: $000009BC VOL: 0
+; 0000 02F7     while(1);
+;PCODE: $000009BD VOL: 0
+;PCODE: $000009BE VOL: 0
+;PCODE: $000009BF VOL: 0
+; 0000 02F8 }
+;PCODE: $000009C0 VOL: 0
+;PCODE: $000009C1 VOL: 0
+;PCODE: $000009C2 VOL: 0
+;PCODE: $000009C3 VOL: 0

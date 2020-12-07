@@ -15,19 +15,19 @@
 #endasm
 
 char NombreArchivo[17];
-char Cadena[15];
-char Pantalla[15];
+char Cadena[15],Cadena2[15];
 
 unsigned long int mseg=0,tiempo;
 char opcion;
-unsigned char i,j,var, porcentaje, round=0;
+unsigned char i,var, avance;
 unsigned char Llave[176];   //Llave original (0 a 15) y extendida el resto
-unsigned long NumBloques,w;
+unsigned long NumBloques,j;
 unsigned char error;
 unsigned char Buffer[16];
+unsigned char round=0;
 
 //SBOX (para cifrado)
-unsigned char sbox[256] =   {
+flash unsigned char sbox[256] =   {
   //0     1    2      3     4    5     6     7      8    9     A      B    C     D     E     F
   0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5, 0x30, 0x01, 0x67, 0x2b, 0xfe, 0xd7, 0xab, 0x76,
   0xca, 0x82, 0xc9, 0x7d, 0xfa, 0x59, 0x47, 0xf0, 0xad, 0xd4, 0xa2, 0xaf, 0x9c, 0xa4, 0x72, 0xc0,
@@ -47,7 +47,7 @@ unsigned char sbox[256] =   {
   0x8c, 0xa1, 0x89, 0x0d, 0xbf, 0xe6, 0x42, 0x68, 0x41, 0x99, 0x2d, 0x0f, 0xb0, 0x54, 0xbb, 0x16 };
 
 //Reverse Sbox (para descifrado)
-unsigned char rsbox[256] =
+flash unsigned char rsbox[256] =
 { 0x52, 0x09, 0x6a, 0xd5, 0x30, 0x36, 0xa5, 0x38, 0xbf, 0x40, 0xa3, 0x9e, 0x81, 0xf3, 0xd7, 0xfb,
   0x7c, 0xe3, 0x39, 0x82, 0x9b, 0x2f, 0xff, 0x87, 0x34, 0x8e, 0x43, 0x44, 0xc4, 0xde, 0xe9, 0xcb,
   0x54, 0x7b, 0x94, 0x32, 0xa6, 0xc2, 0x23, 0x3d, 0xee, 0x4c, 0x95, 0x0b, 0x42, 0xfa, 0xc3, 0x4e,
@@ -66,11 +66,11 @@ unsigned char rsbox[256] =
 0x17, 0x2b, 0x04, 0x7e, 0xba, 0x77, 0xd6, 0x26, 0xe1, 0x69, 0x14, 0x63, 0x55, 0x21, 0x0c, 0x7d };
 
 //Se utiliza en la expansión de la llave  
-unsigned char rcon[11] = {
+flash unsigned char rcon[11] = {
 0x8d, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36};
 
 //Multiplicación por {3} (para cifrado)
-unsigned char M3[256] = 
+flash unsigned char M3[256] = 
 { 0x00, 0x03, 0x06, 0x05, 0x0c, 0x0f, 0x0a, 0x09, 0x18, 0x1b, 0x1e, 0x1d, 0x14, 0x17, 0x12, 0x11,
   0x30, 0x33, 0x36, 0x35, 0x3c, 0x3f, 0x3a, 0x39, 0x28, 0x2b, 0x2e, 0x2d, 0x24, 0x27, 0x22, 0x21,
   0x60, 0x63, 0x66, 0x65, 0x6c, 0x6f, 0x6a, 0x69, 0x78, 0x7b, 0x7e, 0x7d, 0x74, 0x77, 0x72, 0x71,
@@ -208,7 +208,7 @@ flash unsigned char M14[256] =
 
 unsigned char mul14(unsigned char a){
     return M14[a];  
-}
+} 
 
 void ImprimeError(int Err)
 {
@@ -261,25 +261,32 @@ void ImprimeError(int Err)
             break;                       
     }
 }
-void InvAddRoundKey(unsigned char *state, unsigned char *expandedkey, unsigned char k)
+
+interrupt [TIM1_COMPA] void timer1_compa_isr(void)
 {
-    for (i=0; i<16; i++)
-        state[i] = state[i] ^ expandedkey[i+(160 - 16*k)];
+disk_timerproc();
+/* MMC/SD/SD HC card access low level timing function */
 }
+  
 
+// Timer2 output compare interrupt service routine
+interrupt [TIM2_COMPA] void timer2_compa_isr(void)
+{
+  mseg++;
+}  
 
+//-------------------------- FUNCIONES PARA CIFRAR -------------------------
 void AddRoundKey(unsigned char *state, unsigned char *expandedkey, unsigned char k)
 {
-    for (i=0; i<16; i++){
-        state[i] = state[i] ^ expandedkey[i+(16*k)]; 
-    }      
+    for (i=0; i<16; i++)
+        state[i] = state[i] ^ expandedkey[i+(16*k)];
 }
-
 
 void MixColumns(unsigned char *state)
 {
     unsigned char i, a0, a1, a2, a3;
-    for(i = 0; i < 16; i+=4){
+    for(i = 0; i < 16; i+=4)
+    {
         a0 = state[i]; 
         a1 = state[i+1]; 
         a2 = state[i+2]; 
@@ -291,34 +298,12 @@ void MixColumns(unsigned char *state)
     }
 }
 
-void InverseMixColumns(unsigned char *state)
-{
-    unsigned char i, a0, a1, a2, a3;
-    for(i = 0; i < 16; i+=4)
-    {
-        a0 = state[i]; 
-        a1 = state[i+1]; 
-        a2 = state[i+2]; 
-        a3 = state[i+3];
-        state[i]   = mul14(a0) ^ mul11(a1) ^ mul13(a2) ^ mul9(a3);
-        state[i+1] = mul9(a0) ^ mul14(a1) ^ mul11(a2) ^ mul13(a3);
-        state[i+2] = mul13(a0) ^ mul9(a1) ^ mul14(a2) ^ mul11(a3);
-        state[i+3] = mul11(a0) ^ mul13(a1) ^ mul9(a2) ^ mul14(a3);
-    }
-}
-
 void SubBytes(unsigned char *state){
     unsigned char index=0;
     for (i=0; i<16; i++) { 
         index=state[i];
         state[i] = sbox[index];     
     }
-}
-
-void InverseSubBytes(unsigned char *state)
-{  
-    for (i=0; i<16; i++)
-        state[i] = rsbox[state[i]];       
 }
 
 void ShiftRows(unsigned char *state)
@@ -352,6 +337,35 @@ void ShiftRows(unsigned char *state)
     state[3]=aux;   
     
 }
+//-------------------------- FUNCIONES PARA DESCIFRAR ----------------------
+
+void InvAddRoundKey(unsigned char *state, unsigned char *expandedkey, unsigned char k)
+{
+    for (i=0; i<16; i++)
+        state[i] = state[i] ^ expandedkey[i+(160 - 16*k)];
+}
+
+void InverseMixColumns(unsigned char *state)
+{
+    unsigned char i, a0, a1, a2, a3;
+    for(i = 0; i < 16; i+=4)
+    {
+        a0 = state[i]; 
+        a1 = state[i+1]; 
+        a2 = state[i+2]; 
+        a3 = state[i+3];
+        state[i]   = mul14(a0) ^ mul11(a1) ^ mul13(a2) ^ mul9(a3);
+        state[i+1] = mul9(a0) ^ mul14(a1) ^ mul11(a2) ^ mul13(a3);
+        state[i+2] = mul13(a0) ^ mul9(a1) ^ mul14(a2) ^ mul11(a3);
+        state[i+3] = mul11(a0) ^ mul13(a1) ^ mul9(a2) ^ mul14(a3);
+    }
+}
+
+void InverseSubBytes(unsigned char *state)
+{  
+    for (i=0; i<16; i++)
+        state[i] = rsbox[state[i]];       
+}
 
 void InverseShiftRows(unsigned char *state)
 {
@@ -376,6 +390,7 @@ void InverseShiftRows(unsigned char *state)
     
 }
 
+//-------------------------------EXPANDIR KEY-------------------------------
 void KeyExpansion (unsigned char *expandedKey){
         unsigned char temp[4], c=16, i=0, j, aux;
             
@@ -386,7 +401,7 @@ void KeyExpansion (unsigned char *expandedKey){
         }
         
         if (c%16 == 0){       
-            //rotate(temp)==> Shifteo cíclico a la derecha
+            //rotate(temp)==> Shifteo cÃ­clico a la derecha
             aux=temp[0];
             temp[0]=temp[1];  
             temp[1]=temp[2]; 
@@ -408,7 +423,7 @@ void KeyExpansion (unsigned char *expandedKey){
     }
 
 }
-
+//----------------------------------CIFRAR----------------------------------
 void Cipher(unsigned char *in, unsigned char expandedKey[176])
 {
     unsigned char state[16], i;
@@ -430,13 +445,14 @@ void Cipher(unsigned char *in, unsigned char expandedKey[176])
     SubBytes(state);         
     ShiftRows(state);
     AddRoundKey(state, expandedKey,10);  
- 
+    round=0; 
     
     for(i=0;i<16;i++){
         in[i]=state[i];
     }
 }
 
+//----------------------------------CIFRAR----------------------------------
 void Decipher(unsigned char *in, unsigned char expandedkey[176])
 {
     unsigned char state[16], j;
@@ -461,23 +477,9 @@ void Decipher(unsigned char *in, unsigned char expandedkey[176])
         in[i] = state[i];
 }
 
-interrupt [TIM1_COMPA] void timer1_compa_isr(void)
-{
-disk_timerproc();
-/* MMC/SD/SD HC card access low level timing function */
-}
-  
-
-// Timer2 output compare interrupt service routine
-interrupt [TIM2_COMPA] void timer2_compa_isr(void)
-{
-  mseg++;
-}  
-
 void main()
 {
-    unsigned int  br; 
-    unsigned char i;
+    unsigned int  br;
          
     /* FAT function result */
     FRESULT res;
@@ -487,7 +489,7 @@ void main()
     FIL archivo1, archivo2; // file objects
     
     CLKPR=0x80;
-    CLKPR=1;    //Micro Trabajará a 8MHz
+    CLKPR=1;    //Micro TrabajarÃ¡ a 8MHz
         
     NombreArchivo[0]='0';
     NombreArchivo[1]=':';
@@ -526,7 +528,6 @@ void main()
     OCR1AL=0x0F;
     TIMSK1=0x02;
     SetupLCD();
-    StringLCD("Proyecto AES");
     #asm("sei")
     /* Inicia el puerto SPI para la SD */
     disk_initialize(0);
@@ -537,7 +538,7 @@ void main()
        
       while(1){    
         while((UCSR1A&0x80)!=0){
-                                //Limpiar buffer serial (útil para terminal real) 
+                                //Limpiar buffer serial (Ãºtil para terminal real) 
            opcion=getchar(); 
         };
         printf("MENU CIFRADO AES   1)CIFRAR  2)DESCIFRAR\n\r");
@@ -553,18 +554,15 @@ void main()
               NombreArchivo[i]=Cadena[i-2];      //Copiar string con el que antecede con "0:"       
             res = f_open(&archivo1, NombreArchivo, FA_READ);
             if (res==FR_OK){  
-               f_read(&archivo1, Llave, 16,&br);                 //Leer 16 bytes de la llave
-           KeyExpansion(Llave); 
+               f_read(&archivo1, Llave, 16,&br);             //Leer 16 bytes de la llave
                }   
-            else             
-            {
-                printf("Error en el archivo de la llave\n\r");
+            else
+                printf("Error en el archivo de la llave\n\r");   
                 ImprimeError(res);
-            }       
-           }while(br!=16);    
+           }while(br!=16);   
            f_close(&archivo1);
            //Hacer aquí la expansión de llave
-           //KeyExpansion(Llave);
+           KeyExpansion(Llave);
            
            error=1;    
            do{              //Lectura de archivo y cifrado
@@ -574,7 +572,16 @@ void main()
             for (i=2;i<17;i++)
               NombreArchivo[i]=Cadena[i-2];             
             res = f_open(&archivo1, NombreArchivo, FA_READ);
-            if (res==FR_OK){      
+            if (res==FR_OK){    
+                 
+//                EraseLCD();
+//                MoveCursor(0,0);      
+//                StringLCD("Archivo de entrada");
+//                MoveCursor(0,1);
+//                StringLCDVar(Cadena);
+//                delay_ms(1000);                
+//                EraseLCD();
+                  
                printf("Archivo encontrado\n\r");
                i=0;
                while(NombreArchivo[++i]!='.');  //Busca el punto
@@ -584,22 +591,40 @@ void main()
                res = f_open(&archivo2, NombreArchivo, FA_READ | FA_WRITE | FA_CREATE_ALWAYS );
                if (res==FR_OK)
                {      
-                    tiempo=mseg;
-                    printf("Cifrando..."); 
-                    i=archivo1.fsize%16;        //Calcula el número de bytes del último bloque 
+                    tiempo=mseg; 
+                     
+                    //Displayar informaci+on que se está cifrando
+                    EraseLCD();
+                    MoveCursor(0,0);
+                    StringLCD("Cifrando "); 
+                    MoveCursor(0,1);     
+                    StringLCDVar(Cadena); 
+                    delay_ms(2000); 
+                    
+                    i=archivo1.fsize%16;        //Calcula el nÃºmero de bytes del Ãºltimo bloque 
                     NumBloques=archivo1.fsize/16;
                     if (i!=0)
                          NumBloques++;
                     Buffer[0]=i;
                     f_write(&archivo2, Buffer, 1,&br); //Escribe el número de bytes del último bloque
                     j=0;
+                    avance = 0;
                     while(j!=NumBloques)
                     {
-                        f_read(&archivo1, Buffer, 16,&br);   //LeeBloque
-                        //aquí se cifraría usando la llave expandida y bloque de entrada  
-                        Cipher(Buffer,Llave);
+                        f_read(&archivo1, Buffer, 16,&br);   //LeeBloque 
+                        //aquí se cifraría usando la llave expandida y bloque de entrada 
+                        Cipher(Buffer, Llave);
                         f_write(&archivo2,Buffer, 16,&br);   //LeeBloque    
-                        j++;
+                        j++;    
+                        avance++;
+                        if (avance == 100){                
+                            MoveCursor(0,0);
+                            StringLCD("Num Bloques:");      
+                            MoveCursor(0,1);       
+                            sprintf(Cadena2," %lu/%lu",j,NumBloques);          
+                            StringLCDVar(Cadena2);
+                            avance=0;
+                        }
                     }
                     f_close(&archivo2);
                     tiempo=mseg-tiempo;
@@ -609,7 +634,7 @@ void main()
                }
                else
                {                                           
-                 printf("Error al generar archivo de salida %i");
+                 printf("Error al generar archivo de salida %i\n");
                  ImprimeError(res);              
                  error=1;
                }
@@ -632,15 +657,13 @@ void main()
               NombreArchivo[i]=Cadena[i-2];             
             res = f_open(&archivo1, NombreArchivo, FA_READ);
             if (res==FR_OK){  
-               f_read(&archivo1, Llave, 16,&br);   
+               f_read(&archivo1, Llave, 16,&br);                  
                }   
             else
-                printf("Error en el archivo de la llave %i\n\r");
-                ImprimeError(res);   
+                printf("Error en el archivo de la llave %i\n\r",res);   
            }while(br!=16);    
            f_close(&archivo1);
-           //Hacer aquí la expansión de llave
-           KeyExpansion(Llave);
+           
            error=1;    
            do{              //Lectura de archivo y cifrado
             printf("Da el nombre del archivo a descifrar: ");
@@ -649,7 +672,16 @@ void main()
             for (i=2;i<17;i++)
               NombreArchivo[i]=Cadena[i-2];             
             res = f_open(&archivo1, NombreArchivo, FA_READ);
-            if (res==FR_OK){        
+            if (res==FR_OK){
+                
+//                EraseLCD();
+//                MoveCursor(0,0);
+//                StringLCD("Archivo a desencriptar");
+//                MoveCursor(0,1);
+//                StringLCDVar(Cadena);              
+//                delay_ms(2500);
+//                EraseLCD();
+                        
                printf("Archivo encontrado\n\r");
                printf("Da el nombre del archivo de salida: "); 
                scanf("%s",Cadena);
@@ -662,27 +694,38 @@ void main()
                     tiempo=mseg;
                     printf("Descifrando...");   
                     f_read(&archivo1, Buffer, 1,&br);   
-                    i=Buffer[0];                        //No de bytes del último bloque
-                    if (i==0){   
-                        i=16;
-                    } 
+                    i=Buffer[0];                        //No de bytes del Ãºltimo bloque
+                    if (i==0)
+                      i=16;
                     NumBloques=archivo1.fsize/16;
-                    j=0;
+                    j=0; 
+                    avance=0;                   
                     if (NumBloques>1)
                     {
                         while(j!=(NumBloques-1))
                         {
                             f_read(&archivo1, Buffer, 16,&br);   //LeeBloque
                             //aquí se descifraría usando la llave expandida y bloque de entrada
+                            Decipher(Buffer, Llave); 
+                            
                             f_write(&archivo2,Buffer, 16,&br);   //LeeBloque    
                             j++;
+                            avance++;
+                            if (avance == 100){                
+                                MoveCursor(0,0);
+                                StringLCD("Num Bloques:"); 
+                                MoveCursor(0,1);
+                                sprintf(Cadena2," %lu / %lu", j,NumBloques);
+                                StringLCDVar(Cadena2);
+                                avance=0; 
+                            }
                         }
                     }    
-                     f_read(&archivo1, Buffer, 16,&br);   //LeeBloque
-                      //aquí se descifraría el último bloque 
+                     f_read(&archivo1, Buffer, 16,&br);   //LeeBloque 
+                     //aquí se descifraría el último bloque
+                     Decipher(Buffer, Llave);
+                     f_write(&archivo2,Buffer, var,&br);   //LeeBloque                  
                      
-                     f_write(&archivo2,Buffer, i,&br);   //LeeBloque                  
-                    
                     f_close(&archivo2);
                     tiempo=mseg-tiempo;
                     printf("Archivo descrifrado en %lu mseg (%lu bloques)\n\r\n\r",tiempo,NumBloques); 
@@ -690,8 +733,7 @@ void main()
                }
                else
                {                                           
-                 printf("Error al generar archivo de salida %i");
-                 ImprimeError(res);              
+                 printf("Error al generar archivo de salida %i",res);              
                  error=1;
                }
             }      
@@ -703,12 +745,17 @@ void main()
         }
             
         
-    }  
+          EraseLCD();  
+        MoveCursor(0,0);
+        StringLCD("Completado");
+    }     
+        
     }
-    else{
+    else{                      
          StringLCD("Drive NO Detectado");
          while(1);
     }
     f_mount(0,0); //Cerrar drive de SD
+    
     while(1);
 }
