@@ -536,226 +536,230 @@ void main()
     /* mount logical drive 0: */
     if ((res=f_mount(0,&drive))==FR_OK){
        
-      while(1){    
-        while((UCSR1A&0x80)!=0){
-                                //Limpiar buffer serial (Ãºtil para terminal real) 
-           opcion=getchar(); 
-        };
-        printf("MENU CIFRADO AES   1)CIFRAR  2)DESCIFRAR\n\r");
-        opcion=getchar();
-        if (opcion=='1')
-        {   
-           br=0;    
-           do{              //Lectura de llave
-            printf("\n\rDa el nombre del archivo de la llave: ");
-            scanf("%s",Cadena);
-            i=2;
-            for (i=2;i<17;i++)
-              NombreArchivo[i]=Cadena[i-2];      //Copiar string con el que antecede con "0:"       
-            res = f_open(&archivo1, NombreArchivo, FA_READ);
-            if (res==FR_OK){  
-               f_read(&archivo1, Llave, 16,&br);             //Leer 16 bytes de la llave
-               }   
-            else
-                printf("Error en el archivo de la llave\n\r");   
-                ImprimeError(res);
-           }while(br!=16);   
-           f_close(&archivo1);
-           //Hacer aquí la expansión de llave
-           KeyExpansion(Llave);
-           
-           error=1;    
-           do{              //Lectura de archivo y cifrado
-            printf("Da el nombre del archivo a cifrar: ");
-            scanf("%s",Cadena);
-            i=2;
-            for (i=2;i<17;i++)
-              NombreArchivo[i]=Cadena[i-2];             
-            res = f_open(&archivo1, NombreArchivo, FA_READ);
-            if (res==FR_OK){    
-                 
-//                EraseLCD();
-//                MoveCursor(0,0);      
-//                StringLCD("Archivo de entrada");
-//                MoveCursor(0,1);
-//                StringLCDVar(Cadena);
-//                delay_ms(1000);                
-//                EraseLCD();
-                  
-               printf("Archivo encontrado\n\r");
-               i=0;
-               while(NombreArchivo[++i]!='.');  //Busca el punto
-               NombreArchivo[i+1]='A'; 
-               NombreArchivo[i+2]='E';
-               NombreArchivo[i+3]='S';
-               res = f_open(&archivo2, NombreArchivo, FA_READ | FA_WRITE | FA_CREATE_ALWAYS );
-               if (res==FR_OK)
-               {      
-                    tiempo=mseg; 
+        while(1){    
+            while((UCSR1A&0x80)!=0){
+                                    //Limpiar buffer serial (Ãºtil para terminal real) 
+               opcion=getchar(); 
+            };
+            printf("MENU CIFRADO AES   1)CIFRAR  2)DESCIFRAR\n\r");
+            opcion=getchar();
+            if (opcion=='1')
+            {   
+               br=0;    
+               do{              //Lectura de llave
+                printf("\n\rDa el nombre del archivo de la llave: ");
+                scanf("%s",Cadena);
+                i=2;
+                for (i=2;i<17;i++)
+                  NombreArchivo[i]=Cadena[i-2];      //Copiar string con el que antecede con "0:"       
+                res = f_open(&archivo1, NombreArchivo, FA_READ);
+                if (res==FR_OK){  
+                   f_read(&archivo1, Llave, 16,&br);             //Leer 16 bytes de la llave
+                   }   
+                else
+                    printf("Error en el archivo de la llave\n\r");   
+                    ImprimeError(res);
+               }while(br!=16);   
+               f_close(&archivo1);
+               //Hacer aquí la expansión de llave
+               KeyExpansion(Llave);
+               
+               error=1;    
+               do{              //Lectura de archivo y cifrado
+                printf("Da el nombre del archivo a cifrar: ");
+                scanf("%s",Cadena);
+                i=2;
+                for (i=2;i<17;i++)
+                  NombreArchivo[i]=Cadena[i-2];             
+                res = f_open(&archivo1, NombreArchivo, FA_READ);
+                if (res==FR_OK){    
                      
-                    //Displayar informaci+on que se está cifrando
-                    EraseLCD();
-                    MoveCursor(0,0);
-                    StringLCD("Cifrando "); 
-                    MoveCursor(0,1);     
-                    StringLCDVar(Cadena); 
-                    delay_ms(2000); 
-                    
-                    i=archivo1.fsize%16;        //Calcula el nÃºmero de bytes del Ãºltimo bloque 
-                    NumBloques=archivo1.fsize/16;
-                    if (i!=0)
-                         NumBloques++;
-                    Buffer[0]=i;
-                    f_write(&archivo2, Buffer, 1,&br); //Escribe el número de bytes del último bloque
-                    j=0;
-                    avance = 0;
-                    while(j!=NumBloques)
-                    {
-                        f_read(&archivo1, Buffer, 16,&br);   //LeeBloque 
-                        //aquí se cifraría usando la llave expandida y bloque de entrada 
-                        Cipher(Buffer, Llave);
-                        f_write(&archivo2,Buffer, 16,&br);   //LeeBloque    
-                        j++;    
-                        avance++;
-                        if (avance == 100){                
-                            MoveCursor(0,0);
-                            StringLCD("Num Bloques:");      
-                            MoveCursor(0,1);       
-                            sprintf(Cadena2," %lu/%lu",j,NumBloques);          
-                            StringLCDVar(Cadena2);
-                            avance=0;
-                        }
-                    }
-                    f_close(&archivo2);
-                    tiempo=mseg-tiempo;
-                    printf("Archivo crifrado en %lu mseg (%lu bloques)\n\r\n\r",tiempo,NumBloques);     
-                    
-                    error=0; 
-               }
-               else
-               {                                           
-                 printf("Error al generar archivo de salida %i\n");
-                 ImprimeError(res);              
-                 error=1;
-               }
-            }      
-            else         
-               printf("Archivo no encontrado\n\r");   
-           }while(error==1);    
-           f_close(&archivo1);    
-              
-        }
-        
-        if (opcion=='2')   //Desencriptar
-        {   
-           br=0;    
-           do{              //Lectura de llave
-            printf("\n\rDa el nombre del archivo de la llave: ");
-            scanf("%s",Cadena);
-            i=2;
-            for (i=2;i<17;i++)
-              NombreArchivo[i]=Cadena[i-2];             
-            res = f_open(&archivo1, NombreArchivo, FA_READ);
-            if (res==FR_OK){  
-               f_read(&archivo1, Llave, 16,&br);                  
-               }   
-            else
-                printf("Error en el archivo de la llave %i\n\r",res);   
-           }while(br!=16);    
-           f_close(&archivo1);
-           
-           error=1;    
-           do{              //Lectura de archivo y cifrado
-            printf("Da el nombre del archivo a descifrar: ");
-            scanf("%s",Cadena);
-            i=2;
-            for (i=2;i<17;i++)
-              NombreArchivo[i]=Cadena[i-2];             
-            res = f_open(&archivo1, NombreArchivo, FA_READ);
-            if (res==FR_OK){
-                
-//                EraseLCD();
-//                MoveCursor(0,0);
-//                StringLCD("Archivo a desencriptar");
-//                MoveCursor(0,1);
-//                StringLCDVar(Cadena);              
-//                delay_ms(2500);
-//                EraseLCD();
+    //                EraseLCD();
+    //                MoveCursor(0,0);      
+    //                StringLCD("Archivo de entrada");
+    //                MoveCursor(0,1);
+    //                StringLCDVar(Cadena);
+    //                delay_ms(1000);                
+    //                EraseLCD();
+                      
+                   printf("Archivo encontrado\n\r");
+                   i=0;
+                   while(NombreArchivo[++i]!='.');  //Busca el punto
+                   NombreArchivo[i+1]='A'; 
+                   NombreArchivo[i+2]='E';
+                   NombreArchivo[i+3]='S';
+                   res = f_open(&archivo2, NombreArchivo, FA_READ | FA_WRITE | FA_CREATE_ALWAYS );
+                   if (res==FR_OK)
+                   {      
+                        tiempo=mseg; 
+                         
+                        //Displayar informaci+on que se está cifrando
+                        EraseLCD();
+                        MoveCursor(0,0);
+                        StringLCD("Cifrando "); 
+                        MoveCursor(0,1);     
+                        StringLCDVar(Cadena); 
+                        delay_ms(2000); 
                         
-               printf("Archivo encontrado\n\r");
-               printf("Da el nombre del archivo de salida: "); 
-               scanf("%s",Cadena);
-               i=2;
-               for (i=2;i<17;i++)
-                 NombreArchivo[i]=Cadena[i-2];
-               res = f_open(&archivo2, NombreArchivo, FA_READ | FA_WRITE | FA_CREATE_ALWAYS );
-               if (res==FR_OK)
-               {      
-                    tiempo=mseg;
-                    printf("Descifrando...");   
-                    f_read(&archivo1, Buffer, 1,&br);   
-                    i=Buffer[0];                        //No de bytes del Ãºltimo bloque
-                    if (i==0)
-                      i=16;
-                    NumBloques=archivo1.fsize/16;
-                    j=0; 
-                    avance=0;                   
-                    if (NumBloques>1)
-                    {
-                        while(j!=(NumBloques-1))
+                        i=archivo1.fsize%16;        //Calcula el numero de bytes del ultimo bloque-- el residuo final 
+                        NumBloques=archivo1.fsize/16;
+                        if (i!=0)
+                             NumBloques++;
+                        Buffer[0]=i;
+                        f_write(&archivo2, Buffer, 1,&br); //Escribe bytes del último bloque
+                        j=0;
+                        avance = 0;
+                        while(j!=NumBloques)
                         {
-                            f_read(&archivo1, Buffer, 16,&br);   //LeeBloque
-                            //aquí se descifraría usando la llave expandida y bloque de entrada
-                            Decipher(Buffer, Llave); 
-                            
+                            f_read(&archivo1, Buffer, 16,&br);   //LeeBloque 
+                            //aquí se cifraría 
+                            Cipher(Buffer, Llave);
                             f_write(&archivo2,Buffer, 16,&br);   //LeeBloque    
-                            j++;
+                            j++;    
                             avance++;
                             if (avance == 100){                
                                 MoveCursor(0,0);
-                                StringLCD("Num Bloques:"); 
-                                MoveCursor(0,1);
-                                sprintf(Cadena2," %lu / %lu", j,NumBloques);
+                                StringLCD("Num Bloques:");      
+                                MoveCursor(0,1);       
+                                sprintf(Cadena2," %lu/%lu",j,NumBloques);          
                                 StringLCDVar(Cadena2);
-                                avance=0; 
-                            }
+                                avance=0;
+                            }   
+                            
                         }
-                    }    
-                     f_read(&archivo1, Buffer, 16,&br);   //LeeBloque 
-                     //aquí se descifraría el último bloque
-                     Decipher(Buffer, Llave);
-                     f_write(&archivo2,Buffer, var,&br);   //LeeBloque                  
-                     
-                    f_close(&archivo2);
-                    tiempo=mseg-tiempo;
-                    printf("Archivo descrifrado en %lu mseg (%lu bloques)\n\r\n\r",tiempo,NumBloques); 
-                    error=0; 
-               }
-               else
-               {                                           
-                 printf("Error al generar archivo de salida %i",res);              
-                 error=1;
-               }
-            }      
-            else         
-               printf("Archivo no encontrado\n\r");   
-           }while(error==1);    
-           f_close(&archivo1);    
-              
-        }
+                        //Conteo restante, menor a 100
+                        MoveCursor(0,1);
+                        sprintf(Cadena2," %lu/%lu", j,NumBloques);
+                        StringLCDVar(Cadena2);
+                        delay_ms(500);  
+                        //Marcaje de final
+                        MoveCursor(0,1);
+                        StringLCD("LISTO!");        
+                        
+                        f_close(&archivo2);
+                        tiempo=mseg-tiempo;
+                        printf("Archivo crifrado en %lu mseg (%lu bloques)\n\r\n\r",tiempo,NumBloques);     
+                        
+                        error=0; 
+                   }
+                   else
+                   {                                           
+                     printf("Error al generar archivo de salida %i\n");
+                     ImprimeError(res);              
+                     error=1;
+                   }
+                }      
+                else         
+                   printf("Archivo no encontrado\n\r");   
+               }while(error==1);    
+               f_close(&archivo1);    
+                  
+            }
             
-        
-          EraseLCD();  
-        MoveCursor(0,0);
-        StringLCD("Completado");
-    }     
-        
+            if (opcion=='2')   //Desencriptar
+            {   
+               br=0;    
+               do{              //Lectura de llave
+                printf("\n\rDa el nombre del archivo de la llave: ");
+                scanf("%s",Cadena);
+                i=2;
+                for (i=2;i<17;i++)
+                  NombreArchivo[i]=Cadena[i-2];             
+                res = f_open(&archivo1, NombreArchivo, FA_READ);
+                if (res==FR_OK){  
+                   f_read(&archivo1, Llave, 16,&br);                  
+                   }   
+                else
+                    printf("Error en el archivo de la llave %i\n\r",res);   
+               }while(br!=16);    
+               f_close(&archivo1);
+               
+               error=1;    
+               do{              //Lectura de archivo y cifrado
+                printf("Da el nombre del archivo a descifrar: ");
+                scanf("%s",Cadena);
+                i=2;
+                for (i=2;i<17;i++)
+                  NombreArchivo[i]=Cadena[i-2];             
+                res = f_open(&archivo1, NombreArchivo, FA_READ);
+                if (res==FR_OK){
+                            
+                   printf("Archivo encontrado\n\r");
+                   printf("Da el nombre del archivo de salida: "); 
+                   scanf("%s",Cadena);
+                   i=2;
+                   for (i=2;i<17;i++)
+                     NombreArchivo[i]=Cadena[i-2];
+                   res = f_open(&archivo2, NombreArchivo, FA_READ | FA_WRITE | FA_CREATE_ALWAYS );
+                   if (res==FR_OK)
+                   {      
+                        tiempo=mseg;
+                        printf("Descifrando...");   
+                        f_read(&archivo1, Buffer, 1,&br);   
+                        i=Buffer[0];                        //No de bytes del Ãºltimo bloque
+                        if (i==0)
+                          i=16;
+                        NumBloques=archivo1.fsize/16;
+                        j=0; 
+                        avance=0;                   
+                        if (NumBloques>1)
+                        {
+                            while(j!=(NumBloques-1))
+                            {
+                                f_read(&archivo1, Buffer, 16,&br);   //LeeBloque
+                                //aquí se descifraría usando la llave expandida y bloque de entrada
+                                Decipher(Buffer, Llave); 
+                                
+                                f_write(&archivo2,Buffer, 16,&br);   //LeeBloque    
+                                j++;
+                                avance++;
+                                if (avance == 100){                
+                                    MoveCursor(0,0);
+                                    StringLCD("Num Bloques:"); 
+                                    MoveCursor(0,1);
+                                    sprintf(Cadena2," %lu / %lu", j,NumBloques);
+                                    StringLCDVar(Cadena2);
+                                    avance=0; 
+                                }
+                            } 
+                            //Conteo restante, menor a 100
+                            MoveCursor(0,1);
+                            sprintf(Cadena2," %lu/%lu", j,NumBloques);
+                            StringLCDVar(Cadena2);
+                            delay_ms(500);  
+                            //Marcaje de final
+                            MoveCursor(0,1);
+                            StringLCD("LISTO!          ");       
+                        }    
+                         f_read(&archivo1, Buffer, 16,&br);   //LeeBloque 
+                         //aquí se descifraría el último bloque
+                         Decipher(Buffer, Llave);
+                         f_write(&archivo2,Buffer, var,&br);   //LeeBloque                  
+                         
+                        f_close(&archivo2);
+                        tiempo=mseg-tiempo;
+                        printf("Archivo descrifrado en %lu mseg (%lu bloques)\n\r\n\r",tiempo,NumBloques); 
+                        error=0; 
+                   }
+                   else
+                   {                                           
+                     printf("Error al generar archivo de salida %i",res);
+                     ImprimeError(res);                
+                     error=1;
+                   }
+                }      
+                else         
+                   printf("Archivo no encontrado\n\r");   
+               }while(error==1);    
+               f_close(&archivo1);    
+                  
+            }
+        }      
     }
     else{                      
          StringLCD("Drive NO Detectado");
          while(1);
     }
     f_mount(0,0); //Cerrar drive de SD
-    
     while(1);
 }
